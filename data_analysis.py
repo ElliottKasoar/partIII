@@ -213,7 +213,7 @@ def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_
     
     fig1, ax1 = plt.subplots()
     ax1.cla()
-    ax1.set_ylim(0,1.2)
+    ax1.set_ylim(0,1.4)
     ax1.set_xlabel('Momentum (GeV/c)')
     ax1.set_ylabel('Efficiency')
     ax1.yaxis.set_minor_locator(AutoMinorLocator(4))
@@ -244,13 +244,13 @@ def calc_p(p_bins_no, p_max, uni_bins,exp_bins, exponent):
         p_points = np.linspace((0.5 * p_max / p_bins_no), p_max - (0.5 * p_max / p_bins_no), p_bins_no)
 
         for j in range(0, p_bins_no):
-            p_bounds[j+1] = (j+1) * p_max * 10e3 / p_bins_no
+            p_bounds[j+1] = (j+1) * p_max * 10e2 / p_bins_no
     
     #Expontential bin spacing
     elif(exp_bins):
         p_bounds = np.logspace(0, math.log(p_max,exponent), num = p_bins_no, base=exponent)        
         p_bounds = np.insert(p_bounds,0,0)
-        p_bounds = np.multiply(p_bounds,10e3)
+        p_bounds = np.multiply(p_bounds,10e2)
 
         p_points = np.zeros(p_bins_no)
 
@@ -267,7 +267,7 @@ def calc_p(p_bins_no, p_max, uni_bins,exp_bins, exponent):
             p_bounds[l] = p_bounds[l-1] + x * l * dp 
             p_points[l-1] = 0.5 * (p_bounds[l-1] + p_bounds[l]) 
 
-        p_bounds = np.multiply(p_bounds,10e3)
+        p_bounds = np.multiply(p_bounds,10e2)
 
     return p_points, p_bounds
 
@@ -420,13 +420,12 @@ exponent = 2 #Exponent for logspace. Doesn't change anything currently as oversp
 #eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, 'k', 'pi', 'KAON', 'PION')
 
 #Plot other varibles e.g. individual DLLs or correlations
-#plot_vars()
+plot_vars()
 
 track_bins_no = 4
 DLL_lim = 15
 DLL_no = 21
 id_misid_eff(track_bins_no, DLL_lim, DLL_no, 'k', 'pi', 'KAON', 'PION')
-
 
 #Measure total run time for script
 t_final = time.time()
