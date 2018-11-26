@@ -345,6 +345,9 @@ def eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, DLL_part_1, DLL
     eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_max)
 
 
+#Calculate and produce plots for Kaon ID efficiency and PION mis-ID efficiency
+#Currently written for four different track numbers (0-400), but can very easily be changed to number of PVs
+#To do: generalise and comment on code...
 def id_misid_eff(bins_no, DLL_lim, DLL_no, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2):
 
     if(particle_source_1 == 'KAON'):
