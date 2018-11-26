@@ -183,9 +183,9 @@ def plot_vars():
 
 
 #Plot efficiency against momentum
-def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2):
+def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_max):
  
-    title = DLL_part_1 + "_" + DLL_part_2 + "_" + particle_source_1 + "_" + particle_source_2
+    title = DLL_part_1 + "_" + DLL_part_2 + "_" + particle_source_1 + "_" + particle_source_2 + "_" + str(p_max)
     
     if(particle_source_1 == 'PION'):
         particle_source_1 = r'$\pi\ $'
@@ -342,7 +342,7 @@ def eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, DLL_part_1, DLL
     source2_eff_0 = calc_eff(p_bins_no, DLL2, 0, data_no_2, p_bounds, data_2, 'TrackP')
     source2_eff_5 = calc_eff(p_bins_no, DLL2, 5, data_no_2, p_bounds, data_2, 'TrackP')
     
-    eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2)
+    eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_max)
 
 
 def id_misid_eff(bins_no, DLL_lim, DLL_no, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2):
@@ -395,18 +395,20 @@ def id_misid_eff(bins_no, DLL_lim, DLL_no, DLL_part_1, DLL_part_2, particle_sour
     ax1.set_xlim(0.2, 1)
     ax1.set_xlabel('Kaon ID Efficiency')
     ax1.set_ylabel('Pion Mis-ID Efficiency')
-#    ax1.yaxis.set_minor_locator(AutoMinorLocator(4))
-    ax1.semilogy(source1_eff_av[0,:], source2_eff_av[0,:], 'yo-', markersize=4)
-    ax1.semilogy(source1_eff_av[1,:], source2_eff_av[1,:], 'rs-', markersize=4)
-    ax1.semilogy(source1_eff_av[2,:], source2_eff_av[2,:], 'b^-', markersize=4)
-    ax1.semilogy(source1_eff_av[3,:], source2_eff_av[3,:], 'gv-', markersize=4)
+#    ax1.xaxis.set_minor_locator(AutoMinorLocator(4))
+    ax1.semilogy(source1_eff_av[0,:], source2_eff_av[0,:], 'yo-', markersize=4, label='[0,100]')
+    ax1.semilogy(source1_eff_av[1,:], source2_eff_av[1,:], 'rs-', markersize=4, label='[100,200]')
+    ax1.semilogy(source1_eff_av[2,:], source2_eff_av[2,:], 'b^-', markersize=4, label='[200,300]')
+    ax1.semilogy(source1_eff_av[3,:], source2_eff_av[3,:], 'gv-', markersize=4, label='[3000,400]')
+    ax1.legend(title="No. Tracks in Event", loc='upper left', fontsize=8)
+    
+    fig1.savefig("kID_pMID_eff_trackno.eps", format='eps', dpi=1000)
 
-    print(source1_eff_av[0,:], source2_eff_av[0,:])
 
 ###############################################################################
 
-p_bins_no = 50 #Number of momentum bins
-p_max = 50.0 #Maximum track momentum
+p_bins_no = 100 #Number of momentum bins
+p_max = 100.0 #Maximum track momentum
 uni_bins = 0 #Uniform bin sizes
 exp_bins = 0 #Exponentially increasing bin sizes (if neither uni or exp, linear increas)
 exponent = 2 #Exponent for logspace. Doesn't change anything currently as overspecified?
