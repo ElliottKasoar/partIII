@@ -6,6 +6,14 @@ Created on Mon Nov 26 00:39:06 2018
 @author: Elliott
 """
 
+#To do: 
+#Pass in data properly into functions
+#Comment code more
+#Generalise some sections of code e.g. the multi line plots
+#Normalise data distributions
+
+#RichDLLe', 'RichDLLmu','RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt'
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +21,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.stats import gaussian_kde
 import math
 import time
+from sklearn.preprocessing import QuantileTransformer
 
 #Time total run
 t_init = time.time()
@@ -24,17 +33,16 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Import data from kaons and pions
 datafile_kaon = '../Data/PID-train-data-KAONS.hdf' 
-data_kaon = pd.read_hdf(datafile_kaon, 'KAONS' ) 
+data_kaon = pd.read_hdf(datafile_kaon, 'KAONS') 
 print(data_kaon.columns)
 
 datafile_pion = '../Data/PID-train-data-PIONS.hdf' 
-data_pion = pd.read_hdf(datafile_pion, 'PIONS' ) 
+data_pion = pd.read_hdf(datafile_pion, 'PIONS') 
 print(data_pion.columns)
 
 
 ###############################################################################
 #Basic data manipulation e.g. selecting columns of data and changing DLLs
-
 
 #Get column from kaon or pion data
 def get_data(var_type, particle_source):
@@ -402,14 +410,106 @@ def id_misid_eff(bins_no, DLL_lim, DLL_no, DLL_part_1, DLL_part_2, particle_sour
     ax1.semilogy(source1_eff_av[0,:], source2_eff_av[0,:], 'yo-', markersize=4, label='[0,100]')
     ax1.semilogy(source1_eff_av[1,:], source2_eff_av[1,:], 'rs-', markersize=4, label='[100,200]')
     ax1.semilogy(source1_eff_av[2,:], source2_eff_av[2,:], 'b^-', markersize=4, label='[200,300]')
-    ax1.semilogy(source1_eff_av[3,:], source2_eff_av[3,:], 'gv-', markersize=4, label='[3000,400]')
+    ax1.semilogy(source1_eff_av[3,:], source2_eff_av[3,:], 'gv-', markersize=4, label='[300,400]')
     ax1.legend(title="No. Tracks in Event", loc='upper left', fontsize=8)
     
     fig1.savefig("kID_pMID_eff_trackno.eps", format='eps', dpi=1000)
 
 
 ###############################################################################
+    
+def plot_hist(DLL_part_1, DLL_part_2, particle_source_1, bin_no, x_min, x_max, y_max):
+        
+    #Get data for DLLs including changing if the DLL is not x-pi
+    if(DLL_part_2 == 'pi'):
+        DLL = get_data('RichDLL' + DLL_part_1, particle_source_1)
+    else:
+        DLL_1 = get_data('RichDLL' + DLL_part_1, particle_source_1)
+        DLL_2 = get_data('RichDLL' + DLL_part_2, particle_source_1)
+        DLL = change_DLL(DLL_1, DLL_2)   
+    
+    title = "DLL" + DLL_part_1 + "-" + DLL_part_2 + "_" + particle_source_1 + "_hist.eps"
+    
+                
+    if(DLL_part_1 == 'pi'):
+        DLL_part_1 = r'$\pi$'
+    elif(DLL_part_1 == 'k'):
+        DLL_part_1 = 'K'
+      
+    if(DLL_part_2 == 'pi'):
+        DLL_part_2 = r'$\pi$'
+    elif(DLL_part_2 == 'k'):
+        DLL_part_2 = 'K)'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_part_1 + '-' + DLL_part_2 + ')'
+        
+    fig1, ax1 = plt.subplots()
+    ax1.cla()
+    ax1.set_ylim([0, y_max])
+    ax1.set_xlabel(DLL_text)
+    ax1.set_ylabel("Number of events")
+    
+    ax1.hist(DLL, bins=bin_no, range=[x_min,x_max])
+    
+    fig1.savefig(title, format='eps', dpi=2500)
+     
+#    DLL_hist =  np.histogram(DLL,bins=bin_no,range=[x_min,x_max])
 
+    DLL_reshaped = np.reshape(np.array(DLL), (-1,1))
+    
+    qt = QuantileTransformer(n_quantiles=20000, output_distribution='normal')
+    DLL1_norm = qt.fit_transform(DLL_reshaped).squeeze()
+
+#    fig2, ax2 = plt.subplots()
+#    ax2.cla()
+#    ax2.set_xlabel(DLL_text)
+#    ax2.set_ylabel("Number of events")
+    
+#    ax2.hist(DLL1_norm, bins=150)
+    
+
+ ###############################################################################
+
+def DLL_batch(DLL_part_1, DLL_part_2, particle_source_1, bin_no, x_min, x_max, y_max, batch_size = 10000):    
+            
+    #Get data for DLLs including changing if the DLL is not x-pi
+    if(DLL_part_2 == 'pi'):
+        DLL = get_data('RichDLL' + DLL_part_1, particle_source_1)
+    else:
+        DLL_1 = get_data('RichDLL' + DLL_part_1, particle_source_1)
+        DLL_2 = get_data('RichDLL' + DLL_part_2, particle_source_1)
+        DLL = change_DLL(DLL_1, DLL_2)   
+    
+    title = "DLL" + DLL_part_1 + "-" + DLL_part_2 + "_" + particle_source_1 + "_batch_hist.eps"
+    
+                
+    if(DLL_part_1 == 'pi'):
+        DLL_part_1 = r'$\pi$'
+    elif(DLL_part_1 == 'k'):
+        DLL_part_1 = 'K'
+      
+    if(DLL_part_2 == 'pi'):
+        DLL_part_2 = r'$\pi$'
+    elif(DLL_part_2 == 'k'):
+        DLL_part_2 = 'K)'
+
+
+    DLL_batch = DLL[np.random.randint(0, DLL.shape[0], size=batch_size)]      
+    
+    DLL_text = r'$\Delta LL ($' + DLL_part_1 + '-' + DLL_part_2 + ')'
+        
+    fig1, ax1 = plt.subplots()
+    ax1.cla()
+    ax1.set_ylim([0, y_max])
+    ax1.set_xlabel(DLL_text)
+    ax1.set_ylabel("Number of events")
+    
+    ax1.hist(DLL_batch, bins=bin_no, range=[x_min,x_max])
+    
+    fig1.savefig(title, format='eps', dpi=2500)
+    
+
+  
 p_bins_no = 100 #Number of momentum bins
 p_max = 100.0 #Maximum track momentum
 uni_bins = 0 #Uniform bin sizes
@@ -420,12 +520,40 @@ exponent = 2 #Exponent for logspace. Doesn't change anything currently as oversp
 #eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, 'k', 'pi', 'KAON', 'PION')
 
 #Plot other varibles e.g. individual DLLs or correlations
-plot_vars()
+#plot_vars()
 
 track_bins_no = 4
 DLL_lim = 15
 DLL_no = 21
-id_misid_eff(track_bins_no, DLL_lim, DLL_no, 'k', 'pi', 'KAON', 'PION')
+#id_misid_eff(track_bins_no, DLL_lim, DLL_no, 'k', 'pi', 'KAON', 'PION')
+
+
+#Plot histogram
+
+#plot_hist('k', 'pi', 'PION', 325, -60, 20, 250000)
+
+#Plots which more or less get rid of spikes
+#plot_hist('e', 'pi', 'KAON', 350, -40, 20, 250000)
+#plot_hist('k', 'pi', 'KAON', 250, -20, 100, 225000)
+#plot_hist('p', 'pi', 'KAON', 150, -40, 60, 320000)
+#plot_hist('d', 'pi', 'KAON', 150, -40, 60, 320000)
+#plot_hist('bt', 'pi', 'KAON', 150, -40, 60, 320000)
+
+#Mostly smooth but narrow spikes in K, p, d and bt
+#plot_hist('e', 'pi', 'KAON', 400, -40, 20, 225000)
+#plot_hist('k', 'pi', 'KAON', 550, -40, 100, 120000)
+#plot_hist('p', 'pi', 'KAON', 500, -40, 60, 100000)
+#plot_hist('d', 'pi', 'KAON', 500, -40, 60, 100000)
+#plot_hist('bt', 'pi', 'KAON', 500, -40, 60, 100000)
+
+
+#Batches
+DLL_batch('e', 'pi', 'KAON', 60, -40, 20, 1400)
+DLL_batch('k', 'pi', 'KAON', 100, -40, 100, 700)
+DLL_batch('p', 'pi', 'KAON', 75, -40, 60, 700)
+DLL_batch('d', 'pi', 'KAON', 75, -40, 60, 700)
+DLL_batch('bt', 'pi', 'KAON', 75, -40, 60, 700)
+
 
 #Measure total run time for script
 t_final = time.time()
