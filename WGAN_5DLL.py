@@ -43,8 +43,8 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Some tunable variables/parameters...
 #Not really passed properly
-batch_size = 64
-epochs = 1000
+batch_size = 128
+epochs = 100
 
 learning_rate = 0.0001
 beta_1=0.5
@@ -62,7 +62,7 @@ noise_dim = 100 #Dimension of random noise vector.
 training_ratio = 5  # The training ratio is the number of discriminator updates per generator update. The paper uses 5.
 gradient_penalty_weight = 10  # As per the paper
 
-plot_freq = 50 #Plot data for after this number of epochs
+plot_freq = 10 #Plot data for after this number of epochs
 
 #Using tensorflow backend
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -226,7 +226,7 @@ def get_optimizer():
 #Tanh actuvation for final layer s.t. output lies in range [-1, 1] like the training data
 def get_generator():
     generator = Sequential()
-    generator.add(Dense(1024, input_dim=noise_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+    generator.add(Dense(256, input_dim=noise_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
@@ -234,7 +234,7 @@ def get_generator():
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
-    generator.add(Dense(256))
+    generator.add(Dense(1024))
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
@@ -286,7 +286,7 @@ def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_ra
     ax1.set_xlabel("DLL")
     ax1.set_ylabel("Number of events")
     ax1.hist(generated_numbers, bins=bin_no)
-    fig1.savefig('gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
+    fig1.savefig('WGAN5_gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
      
 #Get all data from data files, shuffle the data for each DLL, then split into groups of size sample size
 #Also rearrange into arr_size rows, before combining all DLLs and shuffling these rows
@@ -339,7 +339,8 @@ class RandomWeightedAverage(_Merge):
 
 
 def train(epochs=5, batch_size=128):
-    
+
+    print("Importing data...")    
     x_train, shift, div_num = get_training_data(arr_size, sample_size)
     print("Data imported")
     
@@ -465,7 +466,7 @@ def train(epochs=5, batch_size=128):
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.plot(epoch_arr, generator_loss_tot)
-    fig1.savefig('gen_loss.eps', format='eps', dpi=2500)
+    fig1.savefig('WGAN5_gen_loss.eps', format='eps', dpi=2500)
 
 
 if __name__ == '__main__':
