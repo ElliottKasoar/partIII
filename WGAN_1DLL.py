@@ -43,27 +43,26 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Some tunable variables/parameters...
 #Not really passed properly
-batch_size = 64
-epochs = 1000
+batch_size = 256 #Note doesn't necessarily run on server with 512
+epochs = 50
 
 learning_rate = 0.0001
 beta_1=0.5
-beta_2=0.999
+beta_2=0.9
 
 training_ratio = 5  # The training ratio is the number of discriminator updates per generator update. The paper uses 5.
 gradient_penalty_weight = 10  # As per the paper
 
-noise_dim = 200 #Dimension of random noise vector. 
+noise_dim = 100 #Dimension of random noise vector. 
 
-frac = 0.1
+frac = 0.05
 train_frac = 0.7
 
 DLL_part_1 = 'k'
 DLL_part_2 = 'pi'
 particle_source = 'KAON'
 
-
-plot_freq = 50 #Plot data for after this number of epochs
+plot_freq = 5 #Plot data for after this number of epochs
 
 #Using tensorflow backend
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -115,7 +114,6 @@ def get_DLL(DLL_part_1, DLL_part_2, particle_source):
     return DLL
 
 
-
 def get_x_data(DLL_part_1, DLL_part_2, particle_source):
 
     #Get DLL data
@@ -134,7 +132,9 @@ def get_x_data(DLL_part_1, DLL_part_2, particle_source):
     x_train = x_train.reshape(len(x_train),1)
     x_test = x_test.reshape(len(x_test),1)
 
-    return x_train, x_test
+    x_train, shift, div_num = norm(x_train)
+
+    return x_train, x_test, shift, div_num
 
 def norm(x):
 
@@ -156,6 +156,7 @@ def norm(x):
 def customLoss(yTrue,yPred):
     return K.sum(K.log(yTrue) - K.log(yPred))
 
+
 def cramer_critic(x, y, discriminator):
     
     discriminated_x = discriminator(x)
@@ -175,6 +176,7 @@ def wasserstein_loss(y_true, y_pred):
     Note that the nature of this loss means that it can be (and frequently will be) less than 0."""
     
     return K.mean(y_true * y_pred)
+
 
 def gradient_penalty_loss(y_true, y_pred, averaged_samples, gradient_penalty_weight):
     
@@ -227,7 +229,7 @@ def get_optimizer():
 #Tanh actuvation for final layer s.t. output lies in range [-1, 1] like the training data
 def get_generator():
     generator = Sequential()
-    generator.add(Dense(1024, input_dim=noise_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+    generator.add(Dense(256, input_dim=noise_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
@@ -235,7 +237,7 @@ def get_generator():
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
-    generator.add(Dense(256))
+    generator.add(Dense(1024))
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
@@ -286,7 +288,7 @@ def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_ra
     ax1.set_xlabel("DLL")
     ax1.set_ylabel("Number of events")
     ax1.hist(generated_numbers, bins=bin_no)
-    fig1.savefig('gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
+    fig1.savefig('WGAN1_gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
      
 #Need to understand this better
 class RandomWeightedAverage(_Merge):
@@ -300,11 +302,10 @@ class RandomWeightedAverage(_Merge):
         return (weights * inputs[0]) + ((1 - weights) * inputs[1])
 
 
-def train(epochs=5, batch_size=128):
+def train(epochs=10, batch_size=128):
     
-    x_train, x_test, = get_x_data(DLL_part_1, DLL_part_2, particle_source)
-    x_train, shift, div_num = norm(x_train)
-
+    print("Importing data...")
+    x_train, x_test, shift, div_num = get_x_data(DLL_part_1, DLL_part_2, particle_source)
     print("Data imported")
     
     # Build GAN netowrk
@@ -394,16 +395,24 @@ def train(epochs=5, batch_size=128):
     negative_y = -positive_y
     dummy_y = np.zeros((batch_size, 1), dtype=np.float32)
 
-    generator_loss_tot = []
+    gen_loss_tot = []
+    
     for i in range(1, epochs+1):
+        
         np.random.shuffle(x_train) #Not needed anymore?
+        
         print("Epoch: ", i)
-        print("Number of batches: ", int(x_train.shape[0] // batch_size))
+        
+        batch_count = int(x_train.shape[0] // batch_size)
+        gen_batch_count = int(x_train.shape[0] // (batch_size * training_ratio))
+        
+        print("Number of batches: ", batch_count)
         discriminator_loss = []
         generator_loss = []
         minibatches_size = batch_size * training_ratio
         
-        for j in tqdm(range(int(x_train.shape[0] // (batch_size * training_ratio)))):
+        
+        for j in tqdm(range(gen_batch_count)):
             
             discriminator_minibatches = x_train[j * minibatches_size:(j + 1) * minibatches_size]
         
@@ -418,18 +427,21 @@ def train(epochs=5, batch_size=128):
         if i == 1 or i % plot_freq == 0:
             plot_hist(i, generator, shift, div_num)
           
-        generator_loss_tot = np.concatenate((generator_loss_tot, generator_loss))
+        gen_loss_tot = np.concatenate((gen_loss_tot, generator_loss))
         # Plot the progress
 #        print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (i, discriminator_loss[0], 100*discriminator_loss[1], generator_loss))
         
 #        print(generator_loss)
-    num = x_train.shape[0] // (batch_size * training_ratio) * epochs
-    epoch_arr = np.linspace(1,num,num=num)
+    gen_num = gen_batch_count * epochs
+    epoch_arr = np.linspace(1,gen_num,num=gen_num)
+    epoch_arr = np.divide(epoch_arr, gen_batch_count)
     
     fig1, ax1 = plt.subplots()
     ax1.cla()
-    ax1.plot(epoch_arr, generator_loss_tot)
-    fig1.savefig('gen_loss.eps', format='eps', dpi=2500)
+    ax1.plot(epoch_arr, gen_loss_tot)
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel('Loss')
+    fig1.savefig('WGAN1_gen_loss.eps', format='eps', dpi=2500)
 
 
 if __name__ == '__main__':
