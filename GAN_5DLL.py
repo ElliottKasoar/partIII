@@ -151,6 +151,44 @@ def norm(x):
     
     return x, shift, div_num
 
+#Get all data from data files, shuffle the data for each DLL, then split into groups of size sample size
+#Also rearrange into arr_size rows, before combining all DLLs and shuffling these rows
+#Finally, normalise based on largest value present s.t. all values in range [-1,1]
+def get_training_data(arr_size, sample_size):
+    
+    x_train = np.zeros([tot_arr_size, sample_size])
+    
+    #Get the training and testing data: CHANGE something????????
+    x_train_e = get_x_data('e', 'pi', 'KAON')
+    x_train_k = get_x_data('k', 'pi', 'KAON')
+    x_train_p = get_x_data('p', 'pi', 'KAON')
+    x_train_d = get_x_data('d', 'pi', 'KAON')
+    x_train_bt = get_x_data('bt', 'pi', 'KAON')
+    
+    np.random.shuffle(x_train_e)
+    np.random.shuffle(x_train_k)
+    np.random.shuffle(x_train_p)
+    np.random.shuffle(x_train_d)
+    np.random.shuffle(x_train_bt)
+    
+    x_train_e = np.reshape(x_train_e, [arr_size, sample_size])
+    x_train_k = np.reshape(x_train_k, [arr_size, sample_size])
+    x_train_p = np.reshape(x_train_p, [arr_size, sample_size])
+    x_train_d = np.reshape(x_train_d, [arr_size, sample_size])
+    x_train_bt = np.reshape(x_train_bt, [arr_size, sample_size])
+    
+    x_train = np.concatenate((x_train_e, x_train_k, x_train_p, x_train_d, x_train_bt))
+    np.random.shuffle(x_train)
+        
+#    x_sample = get_x_sample(x_train, sample_size)
+#    x_sample, shift, div_num = norm(x_sample)
+#    batch_count = x_sample.shape[0] // batch_size
+
+    x_train, shift, div_num = norm(x_train)    
+    
+    return x_train, shift, div_num
+
+
 #FINE?
 def get_optimizer():
     return Adam(lr = learning_rate, beta_1=beta_1) 
@@ -256,41 +294,15 @@ def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_ra
     ax1.set_xlabel("DLL")
     ax1.set_ylabel("Number of events")
     ax1.hist(generated_numbers, bins=bin_no)
-    fig1.savefig('gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
+    fig1.savefig('GAN5_gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
         
 #Needs changing - change training/test data source
 def train(epochs=1, batch_size=128):
     
-    x_train = np.zeros([tot_arr_size, sample_size])
-    
-    #Get the training and testing data: CHANGE
-    x_train_e = get_x_data('e', 'pi', 'KAON')
-    x_train_k = get_x_data('k', 'pi', 'KAON')
-    x_train_p = get_x_data('p', 'pi', 'KAON')
-    x_train_d = get_x_data('d', 'pi', 'KAON')
-    x_train_bt = get_x_data('bt', 'pi', 'KAON')
-    
-    np.random.shuffle(x_train_e)
-    np.random.shuffle(x_train_k)
-    np.random.shuffle(x_train_p)
-    np.random.shuffle(x_train_d)
-    np.random.shuffle(x_train_bt)
-    
-    x_train_e = np.reshape(x_train_e, [arr_size, sample_size])
-    x_train_k = np.reshape(x_train_k, [arr_size, sample_size])
-    x_train_p = np.reshape(x_train_p, [arr_size, sample_size])
-    x_train_d = np.reshape(x_train_d, [arr_size, sample_size])
-    x_train_bt = np.reshape(x_train_bt, [arr_size, sample_size])
-    
-    x_train = np.concatenate((x_train_e, x_train_k, x_train_p, x_train_d, x_train_bt))
-    np.random.shuffle(x_train)
-        
-#    x_sample = get_x_sample(x_train, sample_size)
-#    x_sample, shift, div_num = norm(x_sample)
-#    batch_count = x_sample.shape[0] // batch_size
-
-    x_train, shift, div_num = norm(x_train)
-    
+    print("Importing data...")    
+    x_train, shift, div_num = get_training_data(arr_size, sample_size)
+    print("Data imported")
+  
     # Split the training data into batches of size (batch_size =) 128
     batch_count = x_train.shape[0] // batch_size
 
