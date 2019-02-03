@@ -49,18 +49,19 @@ epochs = 1000
 learning_rate = 0.0001
 beta_1=0.5
 beta_2=0.999
-    
-#Current numbers chosen s.t.:
-#Have 10,000,000 data points for each DLL (x5)
-#Each row will be set of 10,000 points so array will be 5000 x 10,000
-arr_size = 1000
-tot_arr_size = 5*1000
-sample_size = 10000
-
-noise_dim = 100 #Dimension of random noise vector. 
 
 training_ratio = 5  # The training ratio is the number of discriminator updates per generator update. The paper uses 5.
 gradient_penalty_weight = 10  # As per the paper
+
+noise_dim = 200 #Dimension of random noise vector. 
+
+frac = 0.1
+train_frac = 0.7
+
+DLL_part_1 = 'k'
+DLL_part_2 = 'pi'
+particle_source = 'KAON'
+
 
 plot_freq = 50 #Plot data for after this number of epochs
 
@@ -69,7 +70,7 @@ os.environ["KERAS_BACKEND"] = "tensorflow"
 #So reproducable
 np.random.seed(10)
 
-def get_data(var_type, particle_source):
+def import_data(var_type, particle_source):
     #Import data from kaons and pions
     datafile_kaon = '../data/PID-train-data-KAONS.hdf' 
     data_kaon = pd.read_hdf(datafile_kaon, 'KAONS') 
@@ -105,35 +106,35 @@ def get_DLL(DLL_part_1, DLL_part_2, particle_source):
         
     #Get data for DLLs including changing if the DLL is not x-pi
     if(DLL_part_2 == 'pi'):
-        DLL = get_data('RichDLL' + DLL_part_1, particle_source)
+        DLL = import_data('RichDLL' + DLL_part_1, particle_source)
     else:
-        DLL_1 = get_data('RichDLL' + DLL_part_1, particle_source)
-        DLL_2 = get_data('RichDLL' + DLL_part_2, particle_source)
+        DLL_1 = import_data('RichDLL' + DLL_part_1, particle_source)
+        DLL_2 = import_data('RichDLL' + DLL_part_2, particle_source)
         DLL = change_DLL(DLL_1, DLL_2)
     
     return DLL
 
 
-def get_x_data(DLL_part_1, DLL_part_2, particle_source_1):
+
+def get_x_data(DLL_part_1, DLL_part_2, particle_source):
 
     #Get DLL data
-    x_data = np.array(get_data('RichDLL' + DLL_part_1, particle_source_1))
+    x_data = np.array(import_data('RichDLL' + DLL_part_1, particle_source))
 
     #Use subset of data
-    frac = 1
     tot_split = int(frac * len(x_data))
-    x_train = x_data[:tot_split]
-        
+    x_data = x_data[:tot_split]
+    
+    #Now split into training/test data 70/30?
+    split = int(train_frac * len(x_data))
+    x_train = x_data[:split]
+    x_test = x_data[split:]
+    
     #Change from (n,) to (n,1) numpy array
     x_train = x_train.reshape(len(x_train),1)
+    x_test = x_test.reshape(len(x_test),1)
 
-    return x_train
-
-def get_x_sample(x, sample_size):
-
-    x_batch = x[np.random.randint(0, x.shape[0], size=sample_size)]      
-
-    return x_batch
+    return x_train, x_test
 
 def norm(x):
 
@@ -238,7 +239,7 @@ def get_generator():
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
-    generator.add(Dense(sample_size, activation='tanh'))
+    generator.add(Dense(1, activation='tanh'))
     
     return generator
 
@@ -247,7 +248,7 @@ def get_generator():
 def get_discriminator():
     discriminator = Sequential()
     
-    discriminator.add(Dense(1024, input_dim=sample_size, kernel_initializer='he_normal'))
+    discriminator.add(Dense(1024, input_dim=1, kernel_initializer='he_normal'))
     discriminator.add(LeakyReLU(0.2))
     discriminator.add(Dropout(0.3))
     
@@ -265,7 +266,7 @@ def get_discriminator():
     
  #If want more than one example probably need ^^
  #Number of examples given by examples...
-def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_range = None, examples=1):
+def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_range = None, examples=50000):
      
     #y_range e.g. 300, x_range e.g. (-100,100)
     
@@ -275,7 +276,6 @@ def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_ra
     #Shift back to proper distribution and reshape to be plotted
     generated_numbers = np.multiply(generated_numbers, div_num)
     generated_numbers = np.add(generated_numbers, shift)    
-    generated_numbers = np.reshape(generated_numbers, [sample_size,1])
     
     fig1, ax1 = plt.subplots()
     ax1.cla()
@@ -288,44 +288,6 @@ def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_ra
     ax1.hist(generated_numbers, bins=bin_no)
     fig1.savefig('gan_generated_data_epoch_%d.eps' % epoch, format='eps', dpi=2500)
      
-#Get all data from data files, shuffle the data for each DLL, then split into groups of size sample size
-#Also rearrange into arr_size rows, before combining all DLLs and shuffling these rows
-#Finally, normalise based on largest value present s.t. all values in range [-1,1]
-def get_training_data(arr_size, sample_size):
-    
-    x_train = np.zeros([tot_arr_size, sample_size])
-    
-    #Get the training and testing data: CHANGE something????????
-    x_train_e = get_x_data('e', 'pi', 'KAON')
-    x_train_k = get_x_data('k', 'pi', 'KAON')
-    x_train_p = get_x_data('p', 'pi', 'KAON')
-    x_train_d = get_x_data('d', 'pi', 'KAON')
-    x_train_bt = get_x_data('bt', 'pi', 'KAON')
-    
-    np.random.shuffle(x_train_e)
-    np.random.shuffle(x_train_k)
-    np.random.shuffle(x_train_p)
-    np.random.shuffle(x_train_d)
-    np.random.shuffle(x_train_bt)
-    
-    x_train_e = np.reshape(x_train_e, [arr_size, sample_size])
-    x_train_k = np.reshape(x_train_k, [arr_size, sample_size])
-    x_train_p = np.reshape(x_train_p, [arr_size, sample_size])
-    x_train_d = np.reshape(x_train_d, [arr_size, sample_size])
-    x_train_bt = np.reshape(x_train_bt, [arr_size, sample_size])
-    
-    x_train = np.concatenate((x_train_e, x_train_k, x_train_p, x_train_d, x_train_bt))
-    np.random.shuffle(x_train)
-        
-#    x_sample = get_x_sample(x_train, sample_size)
-#    x_sample, shift, div_num = norm(x_sample)
-#    batch_count = x_sample.shape[0] // batch_size
-
-    x_train, shift, div_num = norm(x_train)    
-    
-    return x_train, shift, div_num
-
-
 #Need to understand this better
 class RandomWeightedAverage(_Merge):
     """Takes a randomly-weighted average of two tensors. In geometric terms, this outputs a random point on the line
@@ -340,7 +302,9 @@ class RandomWeightedAverage(_Merge):
 
 def train(epochs=5, batch_size=128):
     
-    x_train, shift, div_num = get_training_data(arr_size, sample_size)
+    x_train, x_test, = get_x_data(DLL_part_1, DLL_part_2, particle_source)
+    x_train, shift, div_num = norm(x_train)
+
     print("Data imported")
     
     # Build GAN netowrk
