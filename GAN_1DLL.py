@@ -310,3 +310,6 @@ if __name__ == '__main__':
 #Measure total run time for script
 t_final = time.time()
 print("Total run time = ", t_final - t_init)
+
+with open('runtime.txt', 'w') as f:
+    print(runtime, file=f)
