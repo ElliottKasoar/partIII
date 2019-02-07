@@ -6,6 +6,18 @@ Created on Sun Feb  3 17:10:01 2019
 @author: Elliott
 """
 
+#Params: batch_size=256, epochs=50, lr=0.0001, b1=0.5, frac=0.05, noise=100 works ok
+
+#Now epochs=200, frac=0.1, lr=0.0002, noise=150......  time=40330s
+#If no improvement try first set with longer run
+
+#Now try e=200, frac=0.1, lr=0.0001, noise=100
+
+#Next: longer run e=500, f=0.5, lr=0.0001, noise=150, batch size=64
+
+#Also try with electron DLL: batch_size=128, epochs=100, lr=0.0001, b1=0.5, frac=0.05, noise=100 works ok
+#Worked ok. Runtime 4946.165291547775
+
 import os
 import numpy as np
 import pandas as pd
@@ -28,40 +40,40 @@ from keras import initializers
 #Time total run
 t_init = time.time()
 
+os.environ["CUDA_VISIBLE_DEVICES"]="2" 
+
+#Using tensorflow backend
+os.environ["KERAS_BACKEND"] = "tensorflow"
+
 plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Some tunable variables/parameters...
 #Not really passed properly
-batch_size = 256
-epochs = 500
+batch_size = 128
+epochs = 100
 
-learning_rate = 0.0002
+learning_rate = 0.0001
 beta_1=0.5
 
-noise_dim = 200 #Dimension of random noise vector. 
-plot_freq = 50 #Plot data for after this number of epochs
+noise_dim = 100 #Dimension of random noise vector. 
 
-#Using tensorflow backend
-os.environ["KERAS_BACKEND"] = "tensorflow"
-#So reproducable
-np.random.seed(10)
-
-#Dimension of random noise vector
-#NOTE: not passed properly
-noise_dim = 200
-
-frac = 0.1
+frac = 0.05
 train_frac = 0.7
 
-DLL_part_1 = 'k'
+DLL_part_1 = 'e'
 DLL_part_2 = 'pi'
 particle_source = 'KAON'
+
+plot_freq = 10 #epochs//10 #Plot data for after this number of epochs
+
+#So reproducable
+np.random.seed(10)
 
 
 def import_data(var_type, particle_source):
     #Import data from kaons and pions
-    datafile_kaon = '../data/PID-train-data-KAONS.hdf' 
-    data_kaon = pd.read_hdf(datafile_kaon, 'KAONS') 
+    datafile_kaon = '../data/PID-train-data-KAONS.hdf'
+    data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')
     #print(data_kaon.columns)
 
     datafile_pion = '../data/PID-train-data-PIONS.hdf' 
@@ -309,7 +321,8 @@ if __name__ == '__main__':
     
 #Measure total run time for script
 t_final = time.time()
-print("Total run time = ", t_final - t_init)
+runtime = t_final - t_init
+print("Total run time = ", runtime)
 
-with open('runtime.txt', 'w') as f:
+with open('GAN1_runtime.txt', 'w') as f:
     print(runtime, file=f)
