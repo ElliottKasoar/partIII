@@ -9,6 +9,13 @@ Created on Sun Feb  3 17:29:33 2019
 #Now more based on https://github.com/keras-team/keras-contrib/blob/master/examples/improved_wgan.py
 #With ref to WGAN described in https://arxiv.org/abs/1704.00028
 
+#Params: batch_size=256, epochs=50, lr=0.0001, b1=0.5, b2=0.9, frac=0.05, noise=100 works ok
+#Now epochs=200, frac=0.1, lr=0.0002, noise=150.... time=67407s
+#If no improvement try first set with longer run
+#Changes made it much worse... Now try e=200, frac=0.1, lr=0.0001, noise=100
+#Check params 1 again... with e=100, back to frac=0.05
+
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,7 +51,7 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 #Some tunable variables/parameters...
 #Not really passed properly
 batch_size = 256 #Note doesn't necessarily run on server with 512
-epochs = 50
+epochs = 100
 
 learning_rate = 0.0001
 beta_1=0.5
@@ -62,7 +69,7 @@ DLL_part_1 = 'k'
 DLL_part_2 = 'pi'
 particle_source = 'KAON'
 
-plot_freq = 5 #Plot data for after this number of epochs
+plot_freq = epochs//10 #20. Plot data for after this number of epochs
 
 #Using tensorflow backend
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -268,7 +275,7 @@ def get_discriminator():
     
  #If want more than one example probably need ^^
  #Number of examples given by examples...
-def plot_hist(epoch, generator, shift, div_num, bin_no=100, x_range = None, y_range = None, examples=50000):
+def plot_hist(epoch, generator, shift, div_num, bin_no=200, x_range = None, y_range = None, examples=50000):
      
     #y_range e.g. 300, x_range e.g. (-100,100)
     
@@ -452,5 +459,5 @@ t_final = time.time()
 runtime = t_final - t_init
 print("Total run time = ", runtime)
 
-with open('runtime.txt', 'w') as f:
+with open('WGAN1_runtime.txt', 'w') as f:
     print(runtime, file=f)
