@@ -42,7 +42,7 @@ Created on Wed Feb 13 15:20:22 2019
 #Runtime=10506.6. Worked vaguely
 
 #DLLk set11: set1 but with gen and discrim layers added (6,5).
-#Runtime=106634.2. set10 but epochs = 500, frac = 0.25. Worked reasonably well
+#Runtime=106634.2s = 29.6 hours. set10 but epochs = 500, frac = 0.25. Worked reasonably well
 
 ####################################
 
@@ -92,10 +92,23 @@ Created on Wed Feb 13 15:20:22 2019
 #Runtime=9562.9. Didn't really work.
 
 #set13: set12, but fixed generator training and layers (256x9, data_dim) and (256*9, 1)
-#Runtime=12599.4. Worked well ish. 13.1: Same but with generator saved hopefully... (12812.9)
+#Runtime=12599.4 = 3.5 hours. Worked well ish
 
 #set14: set13, but with frac = 0.1, epochs = 500
-#Runtime=12599.4. Worked well ish
+#Runtime=98277.9s = 27.2 hours.  Worked well ish
+
+#set15: set13, but with particle_source = 'PION'. Also added 6th DLL...
+#Runtime=12634.4. 
+
+#set16: set13, but with new gen/discrim training structure
+#Runtime=3530.8.  Didn't really work
+
+#set17: set 15 again but KAON again i.e. set13(.1) with all DLLs
+#Runtime=12380.4
+
+#set18: set17 but epochs = 500, frac=0.1. KAONS
+
+#set19: set17 but epochs = 500, frac=0.1. PIONS
 
 
 #Consider learning rate decay?
@@ -126,7 +139,7 @@ from keras.utils import multi_gpu_model
 t_init = time.time()
 
 #Choose GPU to use
-os.environ["CUDA_VISIBLE_DEVICES"]="1" 
+os.environ["CUDA_VISIBLE_DEVICES"]="2" 
 
 #Using tensorflow backend
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -137,14 +150,14 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 #Not really passed properly
 
 #Training variables
-batch_size = 128
+batch_size = 256
 epochs = 500
 
 #Parameters for Adam optimiser
 learning_rate = 0.0001
 beta_1=0.5
 
-noise_dim = 100 #Dimension of random noise vector.
+gen_input_dim = 100 #Dimension of random noise vector.
 
 frac = 0.1
 train_frac = 0.7
@@ -153,9 +166,13 @@ train_frac = 0.7
 DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 physical_vars = ['TrackP', 'TrackPt']
 ref_particle = 'pi'
-particle_source = 'KAON'
+particle_source = 'PION'
 
-data_dim = len(DLLs) + len(physical_vars) 
+
+phys_dim = len(physical_vars)
+DLLs_dim = len(DLLs)
+data_dim = DLLs_dim + phys_dim
+noise_dim = gen_input_dim - phys_dim
 
 plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
 
@@ -165,19 +182,21 @@ np.random.seed(10)
 
 #Import data via pandas from data files
 def import_data(var_type, particle_source):
-    #Import data from kaons and pions
-    datafile_kaon = '../../data/PID-train-data-KAONS.hdf'
-    data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')
-    #print(data_kaon.columns)
-
-    datafile_pion = '../../data/PID-train-data-PIONS.hdf' 
-    data_pion = pd.read_hdf(datafile_pion, 'PIONS') 
-    #print(data_pion.columns)
     
     if(particle_source == 'KAON'):
+    
+        datafile_kaon = '../../data/PID-train-data-KAONS.hdf'
+        data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')
+        #print(data_kaon.columns)
         data_loc = data_kaon
+        
     elif(particle_source == 'PION'):
+    
+        datafile_pion = '../../data/PID-train-data-PIONS.hdf' 
+        data_pion = pd.read_hdf(datafile_pion, 'PIONS') 
+        #print(data_pion.columns)
         data_loc = data_pion
+
     else:
         print("Please select either kaon or pion as particle source")
 
@@ -204,18 +223,18 @@ def get_x_data(DLLs, DLL_part_2, physical_vars, particle_source):
     #Get first set of DLL data
     DLL_data_1 = np.array(import_data('RichDLL' + DLLs[0], particle_source))
     
-    x_data_dim = (DLL_data_1.shape[0], len(DLLs) + len(physical_vars)) 
+    x_data_dim = (DLL_data_1.shape[0], DLLs_dim + phys_dim) 
     x_data = np.zeros((x_data_dim))
     x_data[:,0] = DLL_data_1
     
     #Get other DLL data
-    for i in range(1, len(DLLs)):    
+    for i in range(1, DLLs_dim):    
         x_data[:,i] = np.array(import_data('RichDLL' + DLLs[i], particle_source))
     
     
     #Get physics data
-    for i in range(len(DLLs), len(DLLs) + len(physical_vars)):
-        phys_vars_index = i - len(DLLs)
+    for i in range(DLLs_dim, DLLs_dim + phys_dim):
+        phys_vars_index = i - DLLs_dim
         x_data[:,i] = np.array(import_data(physical_vars[phys_vars_index], particle_source))
     
     
@@ -230,9 +249,6 @@ def get_x_data(DLLs, DLL_part_2, physical_vars, particle_source):
     x_train = x_data[:split]
     x_test = x_data[split:]
     
-#    x_train, shift, div_num = norm(x_train)
-#    x_test, test_shift, test_div_num = norm(x_test)
-
     return x_train, x_test, shift, div_num 
 
 
@@ -267,7 +283,7 @@ def get_optimizer():
 def get_generator(optimizer):
     
     generator = Sequential()
-    generator.add(Dense(256, input_dim=noise_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+    generator.add(Dense(256, input_dim=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
     generator.add(LeakyReLU(0.2))
     generator.add(BatchNormalization(momentum=0.8))
 
@@ -363,13 +379,13 @@ def get_discriminator(optimizer):
 
 
 #Build/compile overall GAN network
-def get_gan_network(discriminator, noise_dim, generator, optimizer):
+def get_gan_network(discriminator, generator, optimizer):
     
     #Initially set trainable to False since only want to train generator or discriminator at a time
     discriminator.trainable = False
     
     #GAN input (noise) will be n-dimensional vectors (dimensions from noise_dim)
-    gan_input = Input(shape=(noise_dim,))
+    gan_input = Input(shape=(gen_input_dim,))
     
     #Output of the generator (previously an image, hopefully now a single number?)
     x = generator(gan_input)
@@ -410,14 +426,13 @@ def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, y
 def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
      
     data_batch = x_test[np.random.randint(0, x_test.shape[0], size=examples)]
-    gen_input = np.zeros((examples, noise_dim))
+    gen_input = np.zeros((examples, gen_input_dim))
             
-    phys_data = data_batch[:, len(DLLs):]
-    rand_noise_dim = noise_dim - len(physical_vars)
-    noise = np.random.normal(0, 1, size=[examples, rand_noise_dim])
+    phys_data = data_batch[:, DLLs_dim:]
+    noise = np.random.normal(0, 1, size=[examples, noise_dim])
             
-    gen_input[:, :-len(physical_vars)] = noise
-    gen_input[:, -len(physical_vars):] = phys_data
+    gen_input[:, :-phys_dim] = noise
+    gen_input[:, -phys_dim:] = phys_data
     
     generated_vars = generator.predict(gen_input)
     
@@ -427,10 +442,10 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
         generated_vars[:,i] = np.multiply(generated_vars[:,i], div_num[i])
         generated_vars[:,i] = np.add(generated_vars[:,i], shift[i])    
         
-        if i<len(DLLs):
+        if i<DLLs_dim:
             plot_examples(generated_vars[:,i], 'DLL'+ DLLs[i], epoch)
         else:
-            plot_examples(generated_vars[:,i], physical_vars[i-len(DLLs)], epoch)
+            plot_examples(generated_vars[:,i], physical_vars[i-DLLs_dim], epoch)
         
         
 #Training function. Import data, split into batches to train and train data, plotting data every plot_freq epochs 
@@ -448,7 +463,7 @@ def train(epochs=1, batch_size=128):
     optimizer = get_optimizer()
     generator = get_generator(optimizer)
     discriminator = get_discriminator(optimizer)
-    gan = get_gan_network(discriminator, noise_dim, generator, optimizer)
+    gan = get_gan_network(discriminator, generator, optimizer)
 
     discrim_loss_tot = []
     gen_loss_tot = []
@@ -466,14 +481,13 @@ def train(epochs=1, batch_size=128):
             #To do: take (random?) set of physical variables and replace noise with them
 
             data_batch = x_train[np.random.randint(0, x_train.shape[0], size=batch_size)]
-            gen_input = np.zeros((batch_size, noise_dim))
+            gen_input = np.zeros((batch_size, gen_input_dim))
             
-            phys_data = data_batch[:, len(DLLs):]
-            rand_noise_dim = noise_dim - len(physical_vars)
-            noise = np.random.normal(0, 1, size=[batch_size, rand_noise_dim])
+            phys_data = data_batch[:, DLLs_dim:]
+            noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
             
-            gen_input[:, :-len(physical_vars)] = noise
-            gen_input[:, -len(physical_vars):] = phys_data            
+            gen_input[:, :-phys_dim] = noise
+            gen_input[:, -phys_dim:] = phys_data            
                         
             #Generate fake data
             generated_data = generator.predict(gen_input)
@@ -491,14 +505,13 @@ def train(epochs=1, batch_size=128):
             
             #Train generator
             data_batch = x_train[np.random.randint(0, x_train.shape[0], size=batch_size)]
-            gen_input = np.zeros((batch_size, noise_dim))
+            gen_input = np.zeros((batch_size, gen_input_dim))
             
-            phys_data = data_batch[:, len(DLLs):]
-            rand_noise_dim = noise_dim - len(physical_vars)
-            noise = np.random.normal(0, 1, size=[batch_size, rand_noise_dim])
+            phys_data = data_batch[:, DLLs_dim:]
+            noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
             
-            gen_input[:, :-len(physical_vars)] = noise
-            gen_input[:, -len(physical_vars):] = phys_data            
+            gen_input[:, :-phys_dim] = noise
+            gen_input[:, -phys_dim:] = phys_data            
             
             y_gen = np.ones(batch_size)
 
