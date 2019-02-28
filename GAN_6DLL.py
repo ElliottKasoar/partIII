@@ -156,12 +156,35 @@ Created on Mon Feb 18 23:11:06 2019
 #set33: (PIONS, 500, 1, 128) with NumPV, NumLongTracks
 #Runtime=Aborted. Too long for now
 
-#set34: (KAONs, 500, 0.1, 128) with NumPV, NumLongTracks and all pos data
-#Runtime=
+#set34: (KAONs, 500, 0.1, 128) with NumPV, NumLongTracks and all pos data except RICH2
+#Runtime=96736.4
 
-#set35: (PIONS, 500, 0.1, 128) with NumPV, NumLongTracks all pos data
-#Runtime=
+#set35: (PIONS, 500, 0.1, 128) with NumPV, NumLongTracks all pos data except RICH2
+#Runtime=96449.1
 
+#set36: (KAONS, 100, 0.025, 128) with all data except RICH2. Alt model
+#Runtime = 
+
+#set37: (KAONS, 500, 0.1, 128) with all data except RICH2. Alt model
+#Runtime = 90715.2
+
+#set38: (KAONS, 100, 0.025, 128) with all data except RICH2. Alt model
+#Runtime = 4772.3
+
+#set39: (KAONS, 100, 0.025, 128) with all data except RICH2. Alt model_2 (Wasserstein)
+#Runtime = 2762.3
+
+#set40: (KAONS, 500, 0.1, 128) with all data except RICH2. Alt model_2 (Wasserstein)
+#Runtime = 51700.0
+
+#set41: (KAONS, 100, 0.025, 128) with all data except RICH2. Alt model_2 (Wasserstein). Added kernel_init
+#Runtime = 2792.8
+
+#set42: (KAONS, 250, 0.1, 128) with all data except RICH2. Alt model_2 (Wasserstein). Added kernel_init but removed from first layer
+#Runtime = 
+ 
+#set43: (KAONS, 500, 0.1, 128) with all data inc RICH2
+#Runtime = 
 
 #Consider learning rate decay?
 
@@ -220,10 +243,11 @@ train_frac = 0.7
 DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
                  'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                 'TrackRich1ExitZ']
+                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                 'TrackRich2ExitY', 'TrackRich2ExitZ']
 
 ref_particle = 'pi'
-particle_source = 'PION'
+particle_source = 'KAON'
 
 phys_dim = len(physical_vars)
 DLLs_dim = len(DLLs)
@@ -430,79 +454,79 @@ def build_discriminator(optimizer, loss_func):
 
 #Build/compile overall GAN network
 def build_gan_network(discriminator, generator, optimizer, loss_func, batch_size):
-    
+
     #Initially set trainable to False since only want to train generator or discriminator at a time
     discriminator.trainable = False
-    
+
     #GAN input will be n-dimensional vectors (n = noise_dim + phys_dim)
     gan_noise_input = Input(shape=(noise_dim,))
     gan_phys_input = Input(shape=(phys_dim,))
-    
+
     gan_input = concatenate([gan_noise_input, gan_phys_input], axis=-1)
-    
+
     #Output of the generator i.e. DLLs
     gen_output = generator(gan_input)
-    
+
     discrim_input = concatenate([gen_output, gan_phys_input], axis=-1)
-    
+
     #Get output of discriminator (probability if the image is real or not)
     gan_output = discriminator(discrim_input)
-    
+
     gan = Model(inputs=[gan_noise_input, gan_phys_input], outputs=gan_output)
-    
+
 #    gan = multi_gpu_model(gan, gpus=2)
 
     gan.compile(loss=loss_func, optimizer=optimizer)
-    
+
     return gan
-    
+
 
 def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, y_range = None):
-    
+
     fig1, ax1 = plt.subplots()
     ax1.cla()
-    
-    title = 'GAN7_generated_' + var_name + '_epoch_%d.eps'
-    
+
+    title = 'GAN6_generated_' + var_name + '_epoch_%d.eps'
+
     if y_range is not None:
         ax1.set_ylim(bottom = 0, top = y_range)
-    
+
     if x_range is not None:
         ax1.set_xlim(x_range)
-    
+
     ax1.set_xlabel(var_name)
     ax1.set_ylabel("Number of events")
     ax1.hist(generated_vars, bins=bin_no, range=x_range)
-    
+
     fig1.savefig(title % epoch, format='eps', dpi=2500)
 
 
 #Plot histogram via 'examples' number of numbers generated
 def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
-     
+
     #Get data to input to generator
     data_batch = x_test[np.random.randint(0, x_test.shape[0], size=examples)]
     phys_data = data_batch[:, DLLs_dim:]
     noise = np.random.normal(0, 1, size=[examples, noise_dim])
-            
+
     gen_input = np.zeros((examples, gen_input_dim))
     gen_input[:, :-phys_dim] = noise
     gen_input[:, -phys_dim:] = phys_data            
-                        
+
     #Generate fake data (DLLs only)
     generated_data = generator.predict(gen_input)
-    
+
     #Shift back to proper distribution?
     for i in range(generated_data.shape[1]):
         
         generated_data[:,i] = np.multiply(generated_data[:,i], div_num[i])
         generated_data[:,i] = np.add(generated_data[:,i], shift[i])    
         plot_examples(generated_data[:,i], 'DLL'+ DLLs[i], epoch)
-        
-        
+
+
 #Training function. Import data, split into batches to train and train data, plotting data every plot_freq epochs 
 def train(epochs=20, batch_size=128):
-    
+
     print("Importing data...")
     #Get the training and testing data
     x_train, x_test, shift, div_num = get_x_data(DLLs, ref_particle, physical_vars, particle_source)
@@ -520,75 +544,75 @@ def train(epochs=20, batch_size=128):
 
     discrim_loss_tot = []
     gen_loss_tot = []
-    
+
     for i in range(1, epochs+1):
-        
+
         print('-'*15, 'Epoch %d' % i, '-'*15)
-        
+
         discrim_loss = []
         gen_loss = []
-        
+
         for _ in tqdm(range(batch_count)):
 
             #Get data to train discriminator
             data_batch = x_train[np.random.randint(0, x_train.shape[0], size=batch_size)]
             phys_data = data_batch[:, DLLs_dim:]
             DLL_data = data_batch[:, :DLLs_dim]
-            
+
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
-            
+
             gen_input = np.zeros((batch_size, gen_input_dim))
             gen_input[:, :-phys_dim] = noise
             gen_input[:, -phys_dim:] = phys_data            
-                        
+
             #Generate fake data (DLLs only)
             generated_data = generator.predict(gen_input)
-            
+
             real_discrim_input = np.zeros((batch_size, data_dim))
             real_discrim_input[:, :-phys_dim] = DLL_data
             real_discrim_input[:, -phys_dim:] = phys_data
-        
+
             generated_discrim_input = np.zeros((batch_size, data_dim))
             generated_discrim_input[:, :-phys_dim] = generated_data
             generated_discrim_input[:, -phys_dim:] = phys_data
-        
+
             discrim_input = np.concatenate([real_discrim_input, generated_discrim_input])
-            
+
             #Labels for generated and real data
             y_dis = np.zeros(2*batch_size)
-            
+
             #One-sided label smoothing
             y_dis[:batch_size] = 0.9
-            
+
             #Train discriminator
             discriminator.trainable = True
             discrim_loss.append(discriminator.train_on_batch(discrim_input, y_dis))
-            
+
             #Get data to train generator
             data_batch = x_train[np.random.randint(0, x_train.shape[0], size=batch_size)]
             phys_data = data_batch[:, DLLs_dim:]
-            
+
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
-            
+
             y_gen = np.ones(batch_size)
 
             #Train generator
             discriminator.trainable = False
             gen_loss.append(gan.train_on_batch([noise, phys_data], y_gen))
-        
-        
+
+
         #Generate histogram via generator every plot_freq epochs
         if i == 1 or i % plot_freq == 0:
             gen_examples(x_test, i, generator, shift, div_num)
-            
+
         gen_loss_batch_av = [np.average(gen_loss)]
         discrim_loss_batch_av = [np.average(discrim_loss)]
-        
+
         gen_loss_tot = np.concatenate((gen_loss_tot, gen_loss_batch_av))
         discrim_loss_tot = np.concatenate((discrim_loss_tot, discrim_loss_batch_av))
 
     epoch_arr = np.linspace(1,epochs,num=epochs)
-    
+
     #Plot loss functions
     fig1, ax1 = plt.subplots()
     ax1.cla()
@@ -596,11 +620,11 @@ def train(epochs=20, batch_size=128):
     ax1.plot(epoch_arr, gen_loss_tot)
     ax1.set_xlabel('Epochs')
     ax1.set_ylabel('Loss')
-    
+
     generator.save('trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
 
     ax1.legend(["Discriminator loss", "Generator loss"])
-    fig1.savefig('GAN1_loss.eps', format='eps', dpi=2500)
+    fig1.savefig('GAN6_loss.eps', format='eps', dpi=2500)
 
 #Call training function
 if __name__ == '__main__':
@@ -612,5 +636,5 @@ runtime = t_final - t_init
 print("Total run time = ", runtime)
 
 #Save runtime as text
-with open('GAN1_runtime.txt', 'w') as f:
+with open('GAN6_runtime.txt', 'w') as f:
     print(runtime, file=f)
