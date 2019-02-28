@@ -258,6 +258,7 @@ plot_freq = 10 #epochs//10 #Plot data for after this number of epochs
 #So reproducable
 np.random.seed(10)
 
+grad_loss = True
 
 #Import data via pandas from data files
 def import_single_var(var_type, particle_source):
@@ -417,9 +418,9 @@ def gradient_penalty_loss(y_true, y_pred, averaged_samples, gradient_penalty_wei
     #             - averaged_samples has dimensions (batch_size, nbr_features)
     # gradients afterwards has dimension (batch_size, nbr_features), basically
     # a list of nbr_features-dimensional gradient vectors
-    
+        
     gradients = K.gradients(y_pred, averaged_samples)[0]
-    
+        
     # compute the euclidean norm by squaring ...
     gradients_sqr = K.square(gradients)
     
@@ -467,14 +468,14 @@ def build_generator(optimizer):
     gen_input = concatenate([gen_input_noise, gen_input_phys], axis=-1)
     
     layer = Dense(256)(gen_input)
-    layer = LeakyReLU(0.2)(layer)
-    layer = BatchNormalization(momentum=0.8)(layer)
+    layer = LeakyReLU()(layer)
+    layer = BatchNormalization()(layer)
 
     #Internal layers
     for i in range(gen_layers):
         layer = Dense(256)(layer)
-        layer = LeakyReLU(0.2)(layer)
-        layer = BatchNormalization(momentum=0.8)(layer)
+        layer = LeakyReLU()(layer)
+        layer = BatchNormalization()(layer)
         
     #Output layer
     gen_outputs = Dense(DLLs_dim, activation='tanh')(layer)
@@ -495,18 +496,18 @@ def build_discriminator(optimizer):
     discrim_input_phys = Input(shape=(phys_dim,), name='Input_physics')
     discrim_input = concatenate([discrim_input_DLLs, discrim_input_phys], axis=-1)
     
-    layer = Dense(256)(discrim_input)
+    layer = Dense(256, kernel_initializer='he_normal')(discrim_input)
     layer = LeakyReLU(0.2)(layer)
     layer = Dropout(0.3)(layer)
 
     #Internal layers
     for i in range(discrim_layers):
-        layer = Dense(256)(layer)
+        layer = Dense(256, kernel_initializer='he_normal')(layer)
         layer = LeakyReLU(0.2)(layer)
         layer = Dropout(0.3)(layer)
         
     #Output layer
-    discrim_outputs = Dense(1, activation='linear')(layer)
+    discrim_outputs = Dense(1, kernel_initializer='he_normal', activation='linear')(layer)
     
     discriminator = Model(inputs=[discrim_input_DLLs, discrim_input_phys], outputs=discrim_outputs)
     
@@ -558,29 +559,37 @@ def build_gan_network(discriminator, generator, optimizer):
     
     discrim_out_from_gen = discriminator([generated_DLLs_for_discrim, real_phys])
     discrim_out_from_real_DLLs = discriminator([real_DLLs, real_phys])
-    
-    # We also need to generate weighted-averages of real and generated samples,
-    # to use for the gradient norm penalty.
-    averaged_samples = RandomWeightedAverage()([real_DLLs, generated_DLLs_for_discrim])
-    # We then run these samples through the discriminator as well. Note that we never
-    # really use the discriminator output for these samples - we're only running them to
-    # get the gradient norm for the gradient penalty loss.
-    averaged_samples_out = discriminator([averaged_samples, real_phys])
 
-    # The gradient penalty loss function requires the input averaged samples to get
-    # gradients. However, Keras loss functions can only have two arguments, y_true and
-    # y_pred. We get around this by making a partial() of the function with the averaged
-    # samples here.
-    partial_gp_loss = partial(gradient_penalty_loss, averaged_samples=averaged_samples, gradient_penalty_weight=grad_penalty_weight)
-    # Functions need names or Keras will throw an error
-    partial_gp_loss.__name__ = 'gradient_penalty'
+    if grad_loss:
+        
+        # We also need to generate weighted-averages of real and generated samples,
+        # to use for the gradient norm penalty.
+        averaged_samples = RandomWeightedAverage()([real_DLLs, generated_DLLs_for_discrim])
+        # We then run these samples through the discriminator as well. Note that we never
+        # really use the discriminator output for these samples - we're only running them to
+        # get the gradient norm for the gradient penalty loss.
+        averaged_samples_out = discriminator([averaged_samples, real_phys])
 
+        # The gradient penalty loss function requires the input averaged samples to get
+        # gradients. However, Keras loss functions can only have two arguments, y_true and
+        # y_pred. We get around this by making a partial() of the function with the averaged
+        # samples here.
+        partial_gp_loss = partial(gradient_penalty_loss, averaged_samples=averaged_samples, gradient_penalty_weight=grad_penalty_weight)
+        # Functions need names or Keras will throw an error
+        partial_gp_loss.__name__ = 'gradient_penalty'
 
-    discriminator_model = Model(inputs=[real_DLLs, gen_noise_in_for_discrim, real_phys], 
+        discriminator_model = Model(inputs=[real_DLLs, gen_noise_in_for_discrim, real_phys], 
                                 outputs=[discrim_out_from_real_DLLs, discrim_out_from_gen, averaged_samples_out])
 
-    discriminator_model.compile(optimizer=optimizer, loss=[wasserstein_loss, wasserstein_loss, partial_gp_loss])
-    
+        discriminator_model.compile(optimizer=optimizer, loss=[wasserstein_loss, wasserstein_loss, partial_gp_loss])
+
+    else:
+        
+        discriminator_model = Model(inputs=[real_DLLs, gen_noise_in_for_discrim, real_phys], 
+                                outputs=[discrim_out_from_real_DLLs, discrim_out_from_gen])
+
+        discriminator_model.compile(optimizer=optimizer, loss=[wasserstein_loss, wasserstein_loss])
+        
     return discriminator_model, generator_model
 
 
@@ -589,7 +598,7 @@ def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, y
     fig1, ax1 = plt.subplots()
     ax1.cla()
     
-    title = 'GAN6_generated_' + var_name + '_epoch_%d.eps'
+    title = 'WGAN_generated_' + var_name + '_epoch_%d.eps'
     
     if y_range is not None:
         ax1.set_ylim(bottom = 0, top = y_range)
@@ -647,9 +656,6 @@ def train(epochs=1, batch_size=128):
     discriminator_model, generator_model = build_gan_network(discriminator, generator, optimizer)
     print("Network built")
 
-    # Split the training data into batches of size 128
-    batch_count = x_train.shape[0] // batch_size
-
     discrim_loss_tot = []
     discrim_loss_real_tot = []
     discrim_loss_gen_tot = []
@@ -666,10 +672,10 @@ def train(epochs=1, batch_size=128):
 
         gen_loss = []
         
-        num_batches = int(x_train.shape[0] // batch_size)
+#        num_batches = int(x_train.shape[0] // batch_size)
         
         np.random.shuffle(x_train)
-        print("Number of batches: ", num_batches)
+#        print("Number of batches: ", num_batches)
     
         minibatches_size = batch_size * training_ratio
         
@@ -689,7 +695,7 @@ def train(epochs=1, batch_size=128):
             discrim_loss_gen = np.zeros(training_ratio)    
             discrim_loss_grad = np.zeros(training_ratio)    
 
-            for k in tqdm(range(training_ratio)):
+            for k in range(training_ratio):
                 
                 data_batch = discriminator_minibatches[k * batch_size: (k + 1) * batch_size]
                 
@@ -700,8 +706,11 @@ def train(epochs=1, batch_size=128):
                 discriminator.trainable = True
                 generator.trainable = False
                 
-                discrim_loss[k], discrim_loss_real[k], discrim_loss_gen[k], discrim_loss_grad[k]  = discriminator_model.train_on_batch([DLL_data, noise, phys_data],  [positive_y, negative_y, dummy_y])
-            
+                if grad_loss:
+                    discrim_loss[k], discrim_loss_real[k], discrim_loss_gen[k], discrim_loss_grad[k]  = discriminator_model.train_on_batch([DLL_data, noise, phys_data],  [positive_y, negative_y, dummy_y])
+                else:
+                    discrim_loss[k], discrim_loss_real[k], discrim_loss_gen[k]  = discriminator_model.train_on_batch([DLL_data, noise, phys_data],  [positive_y, negative_y])
+
             data_batch = x_train[np.random.randint(0, x_train.shape[0], size=batch_size)]            
             phys_data = data_batch[:, DLLs_dim:]
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
@@ -738,18 +747,26 @@ def train(epochs=1, batch_size=128):
     #Plot loss functions
     fig1, ax1 = plt.subplots()
     ax1.cla()
+
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel('Loss')
+    
     ax1.plot(epoch_arr, discrim_loss_tot)
     ax1.plot(epoch_arr, discrim_loss_real_tot)
     ax1.plot(epoch_arr, discrim_loss_gen_tot)
-    ax1.plot(epoch_arr, discrim_loss_grad_tot)
+    
     ax1.plot(epoch_arr, gen_loss_tot)
-    ax1.set_xlabel('Epochs')
-    ax1.set_ylabel('Loss')
 
-    generator.save('trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
+    if grad_loss:
+        ax1.plot(epoch_arr, discrim_loss_grad_tot)
+        ax1.legend(["Combined discriminator loss", "Real DLLs discriminator loss", "Gradient loss", "Generated DLLs discriminator loss", "Generator loss"])
+    else:
+        ax1.legend(["Combined discriminator loss", "Real DLLs discriminator loss", "Generated DLLs discriminator loss", "Generator loss"])
+        
+    fig1.savefig('WAN_loss.eps', format='eps', dpi=2500)
 
-    ax1.legend(["Combined discriminator loss", "Real DLLs discriminator loss", "Gradient loss", "Generated DLLs discriminator loss", "Generator loss"])
-    fig1.savefig('GAN6_loss.eps', format='eps', dpi=2500)
+    generator.save('trained_wgan.h5')  # creates a HDF5 file 'trained_gan.h5'
+
 
 #Call training function
 if __name__ == '__main__':
@@ -761,5 +778,5 @@ runtime = t_final - t_init
 print("Total run time = ", runtime)
 
 #Save runtime as text
-with open('GAN6_runtime.txt', 'w') as f:
+with open('WAN_runtime.txt', 'w') as f:
     print(runtime, file=f)
