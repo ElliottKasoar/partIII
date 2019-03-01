@@ -44,6 +44,8 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
                  'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
                  'TrackRich2ExitY', 'TrackRich2ExitZ']
 
+include_z = False #Slightly faster if false (all Z coords same for RICH1Entry etc.)
+
 corr_vars = []
 nearest_neighbours = 3
 for i in range(nearest_neighbours):
@@ -170,7 +172,13 @@ for i in tqdm(range(num_RunNum)):
   
         data_with_EventNum = data_with_RunNum.loc[data_with_RunNum['EventNumber'] == EventNum_list[j]]
         
-        data = data_with_EventNum.loc[:, 'TrackRich1EntryX':'TrackRich2ExitZ']
+        if include_z:
+            data = data_with_EventNum.loc[:, 'TrackRich1EntryX':'TrackRich2ExitZ']
+        else:
+            data = data_with_EventNum.loc[:, ['TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1ExitX', 
+                                          'TrackRich1ExitY', 'TrackRich2EntryX', 'TrackRich2EntryY', 
+                                          'TrackRich2ExitX', 'TrackRich2ExitY']]
+
         data_arr = data.values
 
         num_tracks = data_arr.shape[0]
@@ -182,11 +190,17 @@ for i in tqdm(range(num_RunNum)):
         RICH1Cone = np.zeros(num_tracks)
         RICH2Cone = np.zeros(num_tracks)
 
-        RICH1Entry = data_arr[:,0:3]
-        RICH1Exit = data_arr[:,3:6]
+        if include_z:
+            RICH1Entry = data_arr[:,0:3]
+            RICH1Exit = data_arr[:,3:6]
+            RICH2Entry = data_arr[:,6:9]
+            RICH2Exit = data_arr[:,9:12]
 
-        RICH2Entry = data_arr[:,6:9]
-        RICH2Exit = data_arr[:,9:12]
+        else:
+            RICH1Entry = data_arr[:,0:2]
+            RICH1Exit = data_arr[:,2:4]
+            RICH2Entry = data_arr[:,4:6]
+            RICH2Exit = data_arr[:,6:8]
 
         RICH1Entry_dist = np.linalg.norm(RICH1Entry - RICH1Entry[:,None], axis=-1)
         RICH1Exit_dist = np.linalg.norm(RICH1Exit - RICH1Exit[:,None], axis=-1)
