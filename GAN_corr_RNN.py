@@ -276,33 +276,43 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source):
     #Use subset of data
     tot_split = int(frac * data_length)
 
-    #Create and array with fraction of 1s and 0s and apply as boolean mask to use fraction of data only
+    #Create and array with fraction of 1s and 0s randomly mixed and apply as boolean mask to use fraction of data only
     zero_arr =np.zeros(data_length - tot_split, dtype=bool)
     ones_arr = np.ones(tot_split, dtype=bool)
-    combined_01_arr = np.concatenate((zero_arr,ones_arr))
-    np.random.shuffle(combined_01_arr)
+    frac_mask = np.concatenate((zero_arr,ones_arr))
+    np.random.shuffle(frac_mask)
 
-    x_data = x_data[combined_01_arr]
+    x_data = x_data[frac_mask]
 
     #(Shuffle) and normalise data by shifting and dividing s.t. lies between -1 and 1
-    if not(RNN):
-        np.random.shuffle(x_data)
+    #Shuffle should not be necessary, as data is selected randomly (but in order), then batches take a random ordering of this
+#    if not(RNN):
+#        np.random.shuffle(x_data)
 
     x_data, shift, div_num = norm(x_data, particle_source)    
 
     #Split into training/test data e.g. 70/30
     split = int(train_frac * tot_split)
 
-    #Create and array with fraction of 1s and 0s and apply as boolean mask for training/test split
+    #Create and array with fraction of 1s and 0s randomly mixed and apply as boolean mask for training/test split
     zero_arr_2 =np.zeros(tot_split - split, dtype=bool)
     ones_arr_2 = np.ones(split, dtype=bool)
-    combined_01_arr_2 = np.concatenate((zero_arr_2,ones_arr_2))
-    np.random.shuffle(combined_01_arr_2)
-    not_combined_01_arr_2 = np.logical_not(combined_01_arr_2)
+    train_mask = np.concatenate((zero_arr_2,ones_arr_2))
+    np.random.shuffle(train_mask)
+    test_mask = np.logical_not(train_mask)
     
-    x_train = x_data[combined_01_arr_2]
-    x_test = x_data[not_combined_01_arr_2]
-         
+    x_train = x_data[train_mask]
+    x_test = x_data[test_mask]
+    
+    #Apply the train mask to the fraction mask, to give a new mask where 0 represents either not in the fraction, or if it was in the frac it was assigned as test data
+    frac_mask[frac_mask==1] = train_mask
+
+    #Take inverse of frac so can extract these 0s
+    not_frac_mask = np.logical_not(frac_mask)
+    
+    #Save mask info
+    pd.DataFrame(not_frac_mask).to_csv('unused_data_mask.csv')
+
     return x_train, x_test, shift, div_num 
 
 
