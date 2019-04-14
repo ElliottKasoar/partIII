@@ -18,9 +18,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import time
 
-from keras.layers import Input, BatchNormalization, concatenate
+from keras.layers import Input, BatchNormalization, concatenate, Flatten
 from keras.models import Model, Sequential
-from keras.layers.core import Dense, Dropout
+from keras.layers.core import Dense, Dropout, Reshape
 from keras.layers import CuDNNLSTM, Bidirectional
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
@@ -65,18 +65,18 @@ train_frac = 0.7
 
 #DLL(DLL[i] - ref_particle) from particle_source data
 DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
-physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
-                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-                 'RICH2ConeNum']
-
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
 #                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
 #                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                 'TrackRich2ExitY', 'TrackRich2ExitZ']
+#                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+#                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
+#                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+#                 'RICH2ConeNum']
+
+physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                 'TrackRich2ExitY', 'TrackRich2ExitZ']
 
 
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
@@ -87,15 +87,14 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 ref_particle = 'pi'
 particle_source = 'KAON'
 
-noise_dim = 100 #Dimension of random noise vector. Default = 100
+noise_dim = 40 #Dimension of random noise vector. Default = 100
 #gen_input_dim = 100
 #noise_dim = gen_input_dim - phys_dim
 
 phys_dim = len(physical_vars)
 DLLs_dim = len(DLLs)
 data_dim = DLLs_dim + phys_dim
-
-gen_input_dim = noise_dim + phys_dim 
+gen_input_row_dim  = noise_dim + phys_dim
 
 #Internal layers of generator and discriminator
 gen_layers = 8 #Default 8
@@ -103,15 +102,31 @@ discrim_layers = 8 #Default 8
 gen_nodes = 256 #Default 256
 discrim_nodes = 256 #Default 256
 
-plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
-
-#So reproducable
-np.random.seed(10)
+discrim_output_dim = 1
 
 RNN = False
 sort_var = 'TrackP'
 if RNN:
     discrim_layers -= 1
+    gen_layers -= 1
+
+    seq_length = batch_size // 4 #Rows, default 32
+    seq_shape = (seq_length, DLLs_dim) #N rows of DLL vales
+    gen_input_dim = (seq_length, gen_input_row_dim) #Input N rows of noise and physics
+    gen_output_dim = seq_shape #Output N rows of DLL values
+    
+    discrim_input_dim = seq_shape
+
+else:
+    gen_input_dim = gen_input_row_dim #Input single row of noise and physics
+    gen_output_dim = DLLs_dim #Output single row of DLLs
+    
+    discrim_input_dim = data_dim
+
+plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
+
+#So reproducable
+np.random.seed(10)
 
 ##############################################################################################################
 
@@ -165,25 +180,69 @@ def change_DLL(DLL1, DLL2):
     return DLL3
 
 
-#Normalise data via dividing centre on zero and divide by max s.t. range=[-1,1]
-def norm(x):
+def norm_info(particle_source):
+
+    data_norm = np.array(pd.read_csv('../../data/' + particle_source + '_norm.csv'))
+#    KAON_norm = np.array(pd.read_csv('KAON_norm.csv'))
     
-    shift = np.zeros(x.shape[1])
-    div_num = np.zeros(x.shape[1])
+    #shift = [0,x], div_num = [1,x], x starts at 1
+
+    #Order of variables:
+    columns = ['RunNumber', 'EventNumber', 'MCPDGCode', 'NumPVs', 'NumLongTracks',
+           'NumRich1Hits', 'NumRich2Hits', 'TrackP', 'TrackPt', 'TrackChi2PerDof',
+           'TrackNumDof', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ',
+           'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
+           'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ',
+           'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ',
+           'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RichDLLe',
+           'RichDLLmu', 'RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt',
+           'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+           'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
+           'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2',
+           'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+           'RICH2ConeNum']
+    
+    shift = np.zeros(data_dim)
+    div_num = np.zeros(data_dim)
+    
+    for i in range(data_dim):
+        if i < DLLs_dim:
+            for j in range(len(columns)):
+                if columns[j] == 'RichDLL' + DLLs[i]:
+                    shift[i] = data_norm[0,j+1]
+                    div_num[i] = data_norm[1,j+1]
+                    break
+        else:
+            for k in range(len(columns)):
+                if columns[k] == physical_vars[i-DLLs_dim]:
+                    shift[i] = data_norm[0,k+1]
+                    div_num[i] = data_norm[1,k+1]
+                    break
+
+    return shift, div_num
+
+
+#Normalise data via dividing centre on zero and divide by max s.t. range=[-1,1]
+def norm(x, particle_source):
+    
+#    shift = np.zeros(x.shape[1])
+#    div_num = np.zeros(x.shape[1])
+    
+    shift, div_num, = norm_info(particle_source)
     
     for i in range(x.shape[1]):
         
-        x_max = np.max(x[:,i])
-        x_min = np.min(x[:,i])
+#        x_max = np.max(x[:,i])
+#        x_min = np.min(x[:,i])
     
-        shift[i] = (x_max + x_min)/2
+#        shift[i] = (x_max + x_min)/2
         x[:,i] = np.subtract(x[:,i], shift[i])
         
-        if x_max == x_min:
-            div_num[i] = 1
-        else:
-                div_num[i] = x_max - shift[i]
-                x[:,i] = np.divide(x[:,i], div_num[i])
+#        if x_max == x_min:
+#            div_num[i] = 1
+#        else:
+#                div_num[i] = x_max - shift[i]
+        x[:,i] = np.divide(x[:,i], div_num[i])
     
     return x, shift, div_num
 
@@ -229,7 +288,7 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source):
     if not(RNN):
         np.random.shuffle(x_data)
 
-    x_data, shift, div_num = norm(x_data)    
+    x_data, shift, div_num = norm(x_data, particle_source)    
 
     #Split into training/test data e.g. 70/30
     split = int(train_frac * tot_split)
@@ -284,9 +343,15 @@ def build_generator(optimizer, loss_func):
 
     #Input layer    
     generator = Sequential()
-    generator.add(Dense(gen_nodes, input_dim=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
-    generator.add(LeakyReLU(0.2))
-    generator.add(BatchNormalization(momentum=0.8))
+
+    if RNN:
+        generator.add(CuDNNLSTM(gen_nodes, input_shape=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
+        generator.add(Bidirectional(CuDNNLSTM(gen_nodes)))
+#        generator.add(Flatten())
+    else:
+        generator.add(Dense(gen_nodes, input_dim=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+        generator.add(LeakyReLU(0.2))
+        generator.add(BatchNormalization(momentum=0.8))
 
     #Internal layers
     for i in range(gen_layers):
@@ -295,7 +360,12 @@ def build_generator(optimizer, loss_func):
         generator.add(BatchNormalization(momentum=0.8))
 
     #Output layer
-    generator.add(Dense(DLLs_dim, activation='tanh'))
+    if RNN:
+        generator.add(Dense(np.prod(gen_output_dim), activation='tanh'))
+        generator.add(Reshape(gen_output_dim))
+
+    else:
+        generator.add(Dense(gen_output_dim, activation='tanh'))
     
 #    generator = multi_gpu_model(generator, gpus=2)
 
@@ -311,13 +381,12 @@ def build_discriminator(optimizer, loss_func):
 
     #Input layer    
     if RNN:
-        seq_length = data_dim
-        seq_shape = (seq_length, 1)
-#        seq_shape = (None, data_dim)
-        discriminator.add(CuDNNLSTM(discrim_nodes, input_shape=seq_shape, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences = True))
+        discriminator.add(CuDNNLSTM(discrim_nodes, input_shape=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
         discriminator.add(Bidirectional(CuDNNLSTM(discrim_nodes)))
+#        discriminator.add(Flatten())
+
     else:
-        discriminator.add(Dense(discrim_nodes, input_dim=data_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+        discriminator.add(Dense(discrim_nodes, input_dim=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
         discriminator.add(LeakyReLU(0.2))
         discriminator.add(Dropout(0.3))
     
@@ -328,7 +397,7 @@ def build_discriminator(optimizer, loss_func):
         discriminator.add(Dropout(0.3))
     
     #Output layer
-    discriminator.add(Dense(1, activation='sigmoid'))
+    discriminator.add(Dense(discrim_output_dim, activation='sigmoid'))
     
 #    discriminator = multi_gpu_model(discriminator, gpus=2)
     
@@ -344,19 +413,20 @@ def build_gan_network(discriminator, generator, optimizer, loss_func, batch_size
     discriminator.trainable = False
 
     #GAN input will be n-dimensional vectors (n = noise_dim + phys_dim)
-    gan_noise_input = Input(shape=(noise_dim,))
-    gan_phys_input = Input(shape=(phys_dim,))
+    if RNN:
+        gan_noise_input = Input(shape=(seq_length, noise_dim,))
+        gan_phys_input = Input(shape=(seq_length, phys_dim,))
+    else:
+        gan_noise_input = Input(shape=(noise_dim,))
+        gan_phys_input = Input(shape=(phys_dim,))
 
     gan_input = concatenate([gan_noise_input, gan_phys_input], axis=-1)
 
     #Output of the generator i.e. DLLs
     gen_output = generator(gan_input)
 
-    #Probably wrong...
-    if RNN:
-        discrim_input = (concatenate([gen_output, gan_phys_input], axis=-1), 1)
-    else:
-        discrim_input = concatenate([gen_output, gan_phys_input], axis=-1)
+    #Generator output + real physics is input for discriminator
+    discrim_input = concatenate([gen_output, gan_phys_input], axis=-1)
 
     #Get output of discriminator (probability if the image is real or not)
     gan_output = discriminator(discrim_input)
@@ -398,7 +468,7 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
     phys_data = data_batch[:, DLLs_dim:]
     noise = np.random.normal(0, 1, size=[examples, noise_dim])
 
-    gen_input = np.zeros((examples, gen_input_dim))
+    gen_input = np.zeros((examples, gen_input_row_dim))
     gen_input[:, :-phys_dim] = noise
     gen_input[:, -phys_dim:] = phys_data            
 
@@ -450,7 +520,7 @@ def train(epochs=20, batch_size=128):
 
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
 
-            gen_input = np.zeros((batch_size, gen_input_dim))
+            gen_input = np.zeros((batch_size, gen_input_row_dim))
             gen_input[:, :-phys_dim] = noise
             gen_input[:, -phys_dim:] = phys_data            
 
