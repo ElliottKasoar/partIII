@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import time
 
-from keras.layers import Input, BatchNormalization, concatenate, Flatten, Lambda
+from keras.layers import Input, BatchNormalization, concatenate, Flatten
 from keras.models import Model, Sequential
 from keras.layers.core import Dense, Dropout, Reshape
 from keras.layers import CuDNNLSTM, Bidirectional
@@ -42,7 +42,7 @@ t_init = time.time()
 ##############################################################################################################
 
 #Choose GPU to use
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 #Using tensorflow backend
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -54,13 +54,13 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Training variables
 batch_size = 128 #Default = 128
-epochs = 500 #Default =  500
+epochs = 100 #Default =  500
 
 #Parameters for Adam optimiser
 learning_rate = 0.0001 #Default = 0.0001
 beta_1=0.5 #Default = 0.5
 
-frac = 0.25 #Default = 0.1
+frac = 0.05 #Default = 0.1
 train_frac = 0.7 #Default = 0.7
 
 #DLL(DLL[i] - ref_particle) from particle_source data
@@ -105,45 +105,39 @@ discrim_nodes = 256 #Default 256
 
 discrim_output_dim = 1
 
-gen_RNN = False
-discrim_RNN = False
-sort_var = 'TrackP'
+RNN = True
+sort_var = 'RICH1EntryDist0'
 
-if gen_RNN:
+if RNN:
 
     gen_layers -= 1 #Currently have two LSTM layers before loop, rather than one input layer if not gen_RNN
-    gen_seq_length = batch_size // 4 #Rows, default 32
-#    gen_seq_shape = (gen_seq_length, DLLs_dim) #N rows of DLL vales
+    discrim_layers -= 1
 
-#    gen_input_dim=(batch_size, seq_length, gen_input_row_dim) #Might need to specify batch size?
-    gen_input_dim = (gen_seq_length, gen_input_row_dim) #Input N rows of noise and physics    
-    gen_noise_input_dim = (gen_seq_length, noise_dim,)
-    gen_phys_input_dim = (gen_seq_length, phys_dim,)
-    gen_output_dim = (gen_seq_length, DLLs_dim) #Output N rows of DLL values. *****************Needs fixing
+    seq_length = batch_size // 4 #Rows, default 32
+
+    gen_input_dim = (seq_length, gen_input_row_dim) #Input N rows of noise and physics    
+    gen_output_dim = (seq_length, DLLs_dim) #Output N rows of DLL values. *****************Needs fixing
+ 
+    discrim_input_dim = (seq_length, data_dim)
+    discrim_phys_input_dim = (seq_length, phys_dim)
     
-    gen_batch_size = batch_size - gen_seq_length + 1
+    gan_noise_input_dim = (seq_length, noise_dim,)
+    gan_phys_input_dim = (seq_length, phys_dim,)
+
+    output_batch_size = batch_size - seq_length + 1
     
 else:
+    
     gen_input_dim = gen_input_row_dim #Input single row of noise and physics    
-    gen_noise_input_dim = (noise_dim,)
-    gen_phys_input_dim = (phys_dim,)
     gen_output_dim = DLLs_dim #Output single row of DLLs
     
-if discrim_RNN:
-    
-    discrim_layers -= 1
-    discrim_seq_length = batch_size // 4 #Rows, default 32
-#    discrim_seq_shape = (discrim_seq_length, data_dim) #N rows of DLL vales and phys data
-
- 
-    discrim_input_dim = (discrim_seq_length, data_dim)
-    discrim_phys_input_dim = (discrim_seq_length, phys_dim)
-    discrim_batch_size = batch_size - discrim_seq_length + 1
-
-else:    
     discrim_input_dim = data_dim
     discrim_phys_input_dim = (phys_dim,)
-    discrim_batch_size = batch_size
+    
+    gan_noise_input_dim = (noise_dim,)
+    gan_phys_input_dim = (phys_dim,)
+    
+    output_batch_size = batch_size
 
 
 plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
@@ -290,7 +284,7 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source):
     
     all_data = import_all_var(particle_source)
     
-    if gen_RNN or discrim_RNN:        
+    if RNN:
         all_data = all_data.sort_values(by=sort_var,ascending=True)
         
     data_length = all_data.shape[0]
@@ -351,26 +345,7 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source):
     #Save mask info
     pd.DataFrame(not_frac_mask).to_csv('unused_data_mask.csv')
 
-    return x_train, x_test, shift, div_num 
-
-
-def crop(dimension, start, end):
-    # Crops (or slices) a Tensor on a given dimension from start to end
-    # example : to crop tensor x[:, :, 5:10]
-    # call slice(2, 5, 10) as you want to crop on the second dimension
-    def func(x):
-        if dimension == 0:
-            return x[start: end]
-        if dimension == 1:
-            return x[:, start: end]
-        if dimension == 2:
-            return x[:, :, start: end]
-        if dimension == 3:
-            return x[:, :, :, start: end]
-        if dimension == 4:
-            return x[:, :, :, :, start: end]
-    return Lambda(func)
-
+    return x_train, x_test, shift, div_num
 
 
 #Get (Adam) optimiser
@@ -413,7 +388,7 @@ def build_generator(optimizer, loss_func):
     #Input layer    
     generator = Sequential()
 
-    if gen_RNN:
+    if RNN:
         generator.add(CuDNNLSTM(gen_nodes, input_shape=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
         generator.add(Bidirectional(CuDNNLSTM(gen_nodes)))
 #        generator.add(Flatten()) #Would need if didn't have Bidirectional layer?
@@ -429,7 +404,7 @@ def build_generator(optimizer, loss_func):
         generator.add(BatchNormalization(momentum=0.8))
 
     #Output layer
-    if gen_RNN:
+    if RNN:
         generator.add(Dense(np.prod(gen_output_dim), activation='tanh'))
         generator.add(Reshape(gen_output_dim))
 
@@ -449,7 +424,7 @@ def build_discriminator(optimizer, loss_func):
     discriminator = Sequential()
 
     #Input layer    
-    if discrim_RNN:
+    if RNN:
         discriminator.add(CuDNNLSTM(discrim_nodes, input_shape=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
         discriminator.add(Bidirectional(CuDNNLSTM(discrim_nodes)))
 #        discriminator.add(Flatten()) Would need if didn't have Bidirectional layer?
@@ -482,44 +457,21 @@ def build_gan_network(discriminator, generator, optimizer, loss_func, batch_size
     discriminator.trainable = False
 
     #GAN input will be n-dimensional vectors (n = noise_dim + phys_dim)
-    gen_noise_input = Input(shape=(gen_noise_input_dim))
-    gen_phys_input = Input(shape=(gen_phys_input_dim))
+    gan_noise_input = Input(shape=(gan_noise_input_dim))
+    gan_phys_input = Input(shape=(gan_phys_input_dim))
 
-    gen_input = concatenate([gen_noise_input, gen_phys_input], axis=-1)
+    gan_input = concatenate([gan_noise_input, gan_phys_input], axis=-1)
 
     #Output of the generator i.e. DLLs
-    gen_output = generator(gen_input)
-
-#    print(gen_output.shape)
-#
-#    gen_output_1 = crop(0,0,0)(gen_output)
-#    gen_output_2 = crop(0,0,0)(gen_output)
-#
-#    print(gen_output_1.shape)
-
-#    if gen_RNN:
-#        gen_output = np.concatenate([gen_output[0,:-1,:], gen_output[:,-1,:]], axis=-1)
-                    
-    if discrim_RNN:                        
-        #Reshape generated data
-        gen_output, _ = create_dataset(gen_output, discrim_seq_length)
+    gen_output = generator(gan_input)
     
-    if discrim_RNN or gen_RNN:
-        #GAN physics input for discriminator. Same information as gen_phys_input but may be shaped differently
-        discrim_phys_input = Input(shape=(discrim_phys_input_dim))
-    else: 
-        discrim_phys_input = gen_phys_input
-
     #Generator output + real physics is input for discriminator
-    discrim_input = concatenate([gen_output, discrim_phys_input], axis=-1)
+    discrim_input = concatenate([gen_output, gan_phys_input], axis=-1)
 
     #Get output of discriminator (probability if the image is real or not)
     gan_output = discriminator(discrim_input)
 
-    if discrim_RNN or gen_RNN:
-        gan = Model(inputs=[gen_noise_input, gen_phys_input, discrim_phys_input], outputs=gan_output)
-    else:
-        gan = Model(inputs=[gen_noise_input, gen_phys_input], outputs=gan_output)
+    gan = Model(inputs=[gan_noise_input, gan_phys_input], outputs=gan_output)
 
 #    gan = multi_gpu_model(gan, gpus=2)
 
@@ -556,7 +508,7 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
     batch_ints = np.random.randint(0, x_test.shape[0], size=examples)
             
     #Have taken random sample, but still want to be sorted as before. Consider taking sample sequentially rather than in order. RNN for either model?
-    if gen_RNN or discrim_RNN:
+    if RNN:
         batch_ints = np.sort(batch_ints) 
 
     data_batch = x_test[batch_ints]
@@ -566,14 +518,14 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
     gen_input = np.concatenate((noise, phys_data), axis=1)
               
     #Generate fake data (DLLs only)
-    if gen_RNN:
+    if RNN:
        
-        noise_X, _ = create_dataset(noise, gen_seq_length)
-        phys_data_X, _ = create_dataset(phys_data, gen_seq_length)
-        gen_input_X = np.concatenate((noise_X, phys_data_X), axis=2)
+        noise_RNN, _ = create_dataset(noise, seq_length)
+        phys_data_RNN, _ = create_dataset(phys_data, seq_length)
+        gen_input_RNN = np.concatenate((noise_RNN, phys_data_RNN), axis=2)
 
         #Generate fake data (DLLs only)
-        generated_data = generator.predict(gen_input_X)
+        generated_data = generator.predict(gen_input_RNN)
         generated_data = np.concatenate((generated_data[0,:-1,:],generated_data[:,-1,:]))
 #        generated_data = np.reshape(generated_data,(249969*32,6))
 
@@ -624,7 +576,7 @@ def train(epochs=20, batch_size=128):
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
                 
             #Have taken random sample, but still want to be sorted as before if RNN. Consider taking sample sequentially rather than in order? RNN for either model?
-            if gen_RNN or discrim_RNN:
+            if RNN:
                 batch_ints = np.sort(batch_ints) 
             
             data_batch = x_train[batch_ints]
@@ -632,43 +584,35 @@ def train(epochs=20, batch_size=128):
             DLL_data = data_batch[:, :DLLs_dim]
 
             #Generate fake data (DLLs only)
-            if gen_RNN:
-                noise_gen_RNN, _ = create_dataset(noise, gen_seq_length)
-                phys_data_gen_RNN, _ = create_dataset(phys_data, gen_seq_length)
-                gen_input = np.concatenate((noise_gen_RNN, phys_data_gen_RNN), axis=2)
+            if RNN:
+                noise_RNN, _ = create_dataset(noise, seq_length)
+                phys_data_RNN, _ = create_dataset(phys_data, seq_length)
+                DLL_data_RNN, _ = create_dataset(DLL_data, seq_length)
+                
+                gen_input = np.concatenate((noise_RNN, phys_data_RNN), axis=2)
+                real_discrim_input = np.concatenate((DLL_data_RNN, phys_data_RNN), axis=2)
+
             else:
                 gen_input = np.concatenate((noise, phys_data), axis=1)
-                
-            generated_data = generator.predict(gen_input) #Predict data with generator. Output shape (128, 6), or (97, 32, 6) if gen_RNN
+                real_discrim_input = np.concatenate((DLL_data, phys_data), axis=1)
 
-            #Extract DLL data in the form (128, 6) if necessary
-            if gen_RNN:
-                generated_data = np.concatenate((generated_data[0,:-1,:],generated_data[:,-1,:]))
-                
-            real_discrim_input = np.concatenate((DLL_data, phys_data), axis=1)
+            #Predict data with generator to be fed to discriminator. Output shape (128, 6), or (97, 32, 6) if RNN
+            generated_data = generator.predict(gen_input) 
 
-            if discrim_RNN:                        
-
-                #reshape physics data, generated data and real DLL data for RNN
-                phys_data_discrim_RNN, _ = create_dataset(phys_data, discrim_seq_length)
-                generated_data_discrim_RNN, _ = create_dataset(generated_data, discrim_seq_length)
-                real_discrim_input, _ = create_dataset(real_discrim_input, discrim_seq_length)
-
-                #Combine generated data and physics data
-                generated_discrim_input = np.concatenate((generated_data_discrim_RNN, phys_data_discrim_RNN), axis=2)
-
+            #Combine generated data and physics data
+            if RNN:                        
+                generated_discrim_input = np.concatenate((generated_data, phys_data_RNN), axis=2)
             else:
-                #Combine generated data and physics data
                 generated_discrim_input = np.concatenate((generated_data, phys_data), axis=1)                
 
             #Input real and generated DLL and physics data to discriminator
             discrim_input = np.concatenate([real_discrim_input, generated_discrim_input])
 
             #Labels for generated and real data
-            y_dis = np.zeros(2*discrim_batch_size) #discrim_input[0] = batch_size unless discrim_RNN
+            y_dis = np.zeros(2*output_batch_size) #Length 2* batch_size or 2*(batch_size - seq_length + 1)
 
             #One-sided label smoothing
-            y_dis[:discrim_batch_size] = 0.9 #discrim_input[0] = batch_size unless RNN
+            y_dis[:output_batch_size] = 0.9
 
             #Train discriminator
             discriminator.trainable = True
@@ -680,7 +624,7 @@ def train(epochs=20, batch_size=128):
             batch_ints = np.random.randint(0, x_train.shape[0], size=batch_size)
             
             #Have taken random sample, but still want to be sorted as before. Consider taking sample sequentially rather than in order
-            if gen_RNN or discrim_RNN:
+            if RNN:
                 batch_ints = np.sort(batch_ints) 
             
             data_batch = x_train[batch_ints]
@@ -689,24 +633,14 @@ def train(epochs=20, batch_size=128):
 
             #Train generator
             discriminator.trainable = False
-            y_gen = np.ones(discrim_batch_size) #batch_size-32+1 
+            y_gen = np.ones(output_batch_size) #batch_size-32+1 
 
-            if gen_RNN:
-                noise_gen_RNN, _ = create_dataset(noise, gen_seq_length)
-                phys_data_gen_RNN, _ = create_dataset(phys_data, gen_seq_length)
-
-            if discrim_RNN:
-                phys_data_discrim_RNN, _ = create_dataset(phys_data, discrim_seq_length)
+            if RNN:
+                noise_RNN, _ = create_dataset(noise, seq_length)
+                phys_data_RNN, _ = create_dataset(phys_data, seq_length)
                 
-            if discrim_RNN and not gen_RNN:
-                gen_loss.append(gan.train_on_batch([noise, phys_data, phys_data_discrim_RNN], y_gen))
-           
-            elif discrim_RNN and gen_RNN:                
-                gen_loss.append(gan.train_on_batch([noise_gen_RNN, phys_data_gen_RNN, phys_data_discrim_RNN], y_gen))
-                
-            elif not discrim_RNN and gen_RNN:
-                gen_loss.append(gan.train_on_batch([noise_gen_RNN, phys_data_gen_RNN, phys_data], y_gen))
-
+            if RNN:  
+                gen_loss.append(gan.train_on_batch([noise_RNN, phys_data_RNN], y_gen))
             else:
                 gen_loss.append(gan.train_on_batch([noise, phys_data], y_gen))
 
@@ -718,10 +652,16 @@ def train(epochs=20, batch_size=128):
         if i == (epochs//2):
             generator.save('half_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
             
-        if i == (epochs-2):
-            generator.save('antepenul_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
+        if i == (epochs//2 -2):
+            generator.save('antepenult_half_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
+
+        if i == (epochs//2 - 1):
+            generator.save('penult_half_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
             
-        if i == (epochs-1):
+        if i == (epochs - 2):
+            generator.save('antepenult_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
+            
+        if i == (epochs - 1):
             generator.save('penult_trained_gan.h5')  # creates a HDF5 file 'trained_gan.h5'
             
         gen_loss_batch_av = [np.average(gen_loss)]
