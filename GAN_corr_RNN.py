@@ -79,7 +79,6 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
                  'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
                  'TrackRich2ExitY', 'TrackRich2ExitZ']
 
-
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
 #                 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 
 #                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 
@@ -113,20 +112,21 @@ if RNN:
     gen_layers -= 1 #Currently have two LSTM layers before loop, rather than one input layer if not gen_RNN
     discrim_layers -= 1
 
-    seq_length = batch_size // 4 #Rows, default 32
+    seq_length = batch_size // 32 #Rows, default 32 (//4)
+    apparent_batch_size = batch_size - seq_length + 1
 
     gen_input_dim = (seq_length, gen_input_row_dim) #Input N rows of noise and physics    
-    gen_output_dim = (seq_length, DLLs_dim) #Output N rows of DLL values. *****************Needs fixing
+    gen_output_dim = (seq_length, DLLs_dim) #Output N rows of DLL values
  
     discrim_input_dim = (seq_length, data_dim)
     discrim_phys_input_dim = (seq_length, phys_dim)
     
-    gan_noise_input_dim = (seq_length, noise_dim,)
-    gan_phys_input_dim = (seq_length, phys_dim,)
+    gan_noise_input_dim = (seq_length, noise_dim)
+    gan_phys_input_dim = (seq_length, phys_dim)
 
-    output_batch_size = batch_size - seq_length + 1
-    
 else:
+    
+    apparent_batch_size = batch_size
     
     gen_input_dim = gen_input_row_dim #Input single row of noise and physics    
     gen_output_dim = DLLs_dim #Output single row of DLLs
@@ -136,8 +136,6 @@ else:
     
     gan_noise_input_dim = (noise_dim,)
     gan_phys_input_dim = (phys_dim,)
-    
-    output_batch_size = batch_size
 
 
 plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
@@ -420,7 +418,7 @@ def build_generator(optimizer, loss_func):
 #Build discriminator layers network
 #Changed input_dim to 1 (see above)
 def build_discriminator(optimizer, loss_func):
-    
+
     discriminator = Sequential()
 
     #Input layer    
@@ -507,9 +505,15 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
 
     batch_ints = np.random.randint(0, x_test.shape[0], size=examples)
             
-    #Have taken random sample, but still want to be sorted as before. Consider taking sample sequentially rather than in order. RNN for either model?
+    #Can use random indicies, but must still be sorted for RNN. Otherwise use indicies from a specified starting point
     if RNN:
-        batch_ints = np.sort(batch_ints) 
+                
+        batch_ints = np.sort(batch_ints)
+ 
+        #Or have all in order?                         
+#        start_index = np.random.randint(0, x_test.shape[0] - examples)
+#        end_index = start_index + examples
+#        batch_ints = np.arange(start_index, end_index)
 
     data_batch = x_test[batch_ints]
     phys_data = data_batch[:, DLLs_dim:]
@@ -519,15 +523,14 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
               
     #Generate fake data (DLLs only)
     if RNN:
-       
+
         noise_RNN, _ = create_dataset(noise, seq_length)
         phys_data_RNN, _ = create_dataset(phys_data, seq_length)
         gen_input_RNN = np.concatenate((noise_RNN, phys_data_RNN), axis=2)
 
         #Generate fake data (DLLs only)
-        generated_data = generator.predict(gen_input_RNN)
+        generated_data = generator.predict(gen_input_RNN, batch_size=apparent_batch_size)
         generated_data = np.concatenate((generated_data[0,:-1,:],generated_data[:,-1,:]))
-#        generated_data = np.reshape(generated_data,(249969*32,6))
 
     else:
         #Generate fake data (DLLs only)
@@ -569,16 +572,19 @@ def train(epochs=20, batch_size=128):
         discrim_loss = []
         gen_loss = []
 
-        for _ in tqdm(range(batch_count)):
+        for j in tqdm(range(batch_count)):
 
             #Get data to train discriminator:
             batch_ints = np.random.randint(0, x_train.shape[0], size=batch_size)
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
                 
-            #Have taken random sample, but still want to be sorted as before if RNN. Consider taking sample sequentially rather than in order? RNN for either model?
+            #Can use random indicies, but must still be sorted for RNN. Otherwise use indicies from a specified starting point
             if RNN:
-                batch_ints = np.sort(batch_ints) 
-            
+#                batch_ints = np.sort(batch_ints)
+                start_index = np.random.randint(0, x_train.shape[0] - batch_size)
+                end_index = start_index + batch_size
+                batch_ints = np.arange(start_index, end_index)
+                
             data_batch = x_train[batch_ints]
             phys_data = data_batch[:, DLLs_dim:]
             DLL_data = data_batch[:, :DLLs_dim]
@@ -597,7 +603,7 @@ def train(epochs=20, batch_size=128):
                 real_discrim_input = np.concatenate((DLL_data, phys_data), axis=1)
 
             #Predict data with generator to be fed to discriminator. Output shape (128, 6), or (97, 32, 6) if RNN
-            generated_data = generator.predict(gen_input) 
+            generated_data = generator.predict(gen_input, batch_size=apparent_batch_size) 
 
             #Combine generated data and physics data
             if RNN:                        
@@ -609,10 +615,10 @@ def train(epochs=20, batch_size=128):
             discrim_input = np.concatenate([real_discrim_input, generated_discrim_input])
 
             #Labels for generated and real data
-            y_dis = np.zeros(2*output_batch_size) #Length 2* batch_size or 2*(batch_size - seq_length + 1)
+            y_dis = np.zeros(2*apparent_batch_size) #Length 2* batch_size or 2*(batch_size - seq_length + 1)
 
             #One-sided label smoothing
-            y_dis[:output_batch_size] = 0.9
+            y_dis[:apparent_batch_size] = 0.9
 
             #Train discriminator
             discriminator.trainable = True
@@ -623,17 +629,20 @@ def train(epochs=20, batch_size=128):
             
             batch_ints = np.random.randint(0, x_train.shape[0], size=batch_size)
             
-            #Have taken random sample, but still want to be sorted as before. Consider taking sample sequentially rather than in order
+            #Get batch index numbers. Either sort random ints, or start from random int and use remainder in order
             if RNN:
-                batch_ints = np.sort(batch_ints) 
-            
+#                batch_ints = np.sort(batch_ints)
+                start_index = np.random.randint(0, x_train.shape[0] - batch_size)
+                end_index = start_index + batch_size
+                batch_ints = np.arange(start_index, end_index)
+
             data_batch = x_train[batch_ints]
             phys_data = data_batch[:, DLLs_dim:]
             noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
 
             #Train generator
             discriminator.trainable = False
-            y_gen = np.ones(output_batch_size) #batch_size-32+1 
+            y_gen = np.ones(apparent_batch_size) #batch_size-32+1 
 
             if RNN:
                 noise_RNN, _ = create_dataset(noise, seq_length)
