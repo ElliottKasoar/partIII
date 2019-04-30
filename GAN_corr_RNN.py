@@ -54,13 +54,13 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Training variables
 batch_size = 128 #Default = 128
-epochs = 100 #Default =  500
+epochs = 200 #Default = 100
 
 #Parameters for Adam optimiser
 learning_rate = 0.0001 #Default = 0.0001
 beta_1=0.5 #Default = 0.5
 
-frac = 0.05 #Default = 0.1
+frac = 0.1 #Default = 0.1
 train_frac = 0.7 #Default = 0.7
 
 #DLL(DLL[i] - ref_particle) from particle_source data
@@ -74,10 +74,15 @@ DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
 #                 'RICH2ConeNum']
 
-physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                 'TrackRich2ExitY', 'TrackRich2ExitZ']
+#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                 'TrackRich2ExitY', 'TrackRich2ExitZ']
+
+physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 
+                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 
+                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
+                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
 
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
 #                 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 
@@ -99,13 +104,17 @@ gen_input_row_dim  = noise_dim + phys_dim
 #Internal layers of generator and discriminator
 gen_layers = 8 #Default 8
 discrim_layers = 8 #Default 8
+gen_input_nodes = 256
 gen_nodes = 256 #Default 256
+discrim_input_nodes = 256
 discrim_nodes = 256 #Default 256
 
 discrim_output_dim = 1
 
 RNN = True
-sort_var = 'RICH1EntryDist0'
+#sort_var = 'RICH1EntryDist0'
+#sort_var = 'None'
+sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] #Still group by events, but also sort by busy-ness
 
 if RNN:
 
@@ -282,7 +291,7 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source):
     
     all_data = import_all_var(particle_source)
     
-    if RNN:
+    if RNN and sort_var is not None:
         all_data = all_data.sort_values(by=sort_var,ascending=True)
         
     data_length = all_data.shape[0]
@@ -387,11 +396,11 @@ def build_generator(optimizer, loss_func):
     generator = Sequential()
 
     if RNN:
-        generator.add(CuDNNLSTM(gen_nodes, input_shape=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
-        generator.add(Bidirectional(CuDNNLSTM(gen_nodes)))
+        generator.add(CuDNNLSTM(gen_input_nodes, input_shape=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
+        generator.add(Bidirectional(CuDNNLSTM(gen_input_nodes)))
 #        generator.add(Flatten()) #Would need if didn't have Bidirectional layer?
     else:
-        generator.add(Dense(gen_nodes, input_dim=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+        generator.add(Dense(gen_input_nodes, input_dim=gen_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
         generator.add(LeakyReLU(0.2))
         generator.add(BatchNormalization(momentum=0.8))
 
@@ -416,19 +425,18 @@ def build_generator(optimizer, loss_func):
     return generator
 
 #Build discriminator layers network
-#Changed input_dim to 1 (see above)
 def build_discriminator(optimizer, loss_func):
 
     discriminator = Sequential()
 
     #Input layer    
     if RNN:
-        discriminator.add(CuDNNLSTM(discrim_nodes, input_shape=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
-        discriminator.add(Bidirectional(CuDNNLSTM(discrim_nodes)))
+        discriminator.add(CuDNNLSTM(discrim_input_nodes, input_shape=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True))
+        discriminator.add(Bidirectional(CuDNNLSTM(discrim_input_nodes)))
 #        discriminator.add(Flatten()) Would need if didn't have Bidirectional layer?
 
     else:
-        discriminator.add(Dense(discrim_nodes, input_dim=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
+        discriminator.add(Dense(discrim_input_nodes, input_dim=discrim_input_dim, kernel_initializer=initializers.RandomNormal(stddev=0.02)))
         discriminator.add(LeakyReLU(0.2))
         discriminator.add(Dropout(0.3))
     
@@ -506,8 +514,7 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
     batch_ints = np.random.randint(0, x_test.shape[0], size=examples)
             
     #Can use random indicies, but must still be sorted for RNN. Otherwise use indicies from a specified starting point
-    if RNN:
-                
+    if RNN:                
         batch_ints = np.sort(batch_ints)
  
         #Or have all in order?                         
