@@ -18,6 +18,7 @@ from keras.models import load_model
 import math
 from matplotlib.ticker import AutoMinorLocator
 import time
+import os
 
 #Originally: set13.1 generator - works reasonably well for efficiency plot and DLL correlations to each other (both generated)
 #set15 for PION
@@ -28,9 +29,42 @@ import time
 #Time total run
 t_init = time.time()
 
-print("Loading generators...")
+plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
+
+ref_particle = 'pi'
+particle_source_1 = 'KAON'
+particle_source_2 = 'PION'
+
+train_frac = 0.7
+examples=1000000
 
 set_text = ""
+unused_mask_loc_k = ''
+unused_mask_loc_p = ''
+
+RNN = False
+sort_var = 'RICH1EntryDist0'
+
+unused_mask_k = False
+unused_mask_p = False
+generate_P = False
+alt_model_k = False
+alt_model_p = False
+
+gen_av = False
+concat = False
+
+subset=False
+sub_var = 'RICH1ExitDist0'
+sub_min = None
+sub_max = 10
+
+if subset:
+    subset_text = '_' + sub_var + '_' + str(sub_min) + '-' + str(sub_max)
+else:
+    subset_text = ''
+
+print("Loading generators...")
 
 ###############################################################################
 
@@ -47,7 +81,6 @@ set_text = ""
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
 #generate_P = True
-#alt_model_k = False
 
 ###############################################################################
 
@@ -64,7 +97,6 @@ set_text = ""
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
 #generate_P = True
-#alt_model_k = False
 
 ###############################################################################
 
@@ -77,8 +109,6 @@ set_text = ""
 #input_physical_vars = ['TrackP', 'TrackPt']
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
-#generate_P = False
-#alt_model_k = False
 
 ###############################################################################
 
@@ -108,8 +138,6 @@ set_text = ""
 #input_physical_vars = ['TrackP', 'TrackPt']
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
-#generate_P = False
-#alt_model_k = False
 
 
 ###############################################################################
@@ -118,7 +146,6 @@ set_text = ""
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set28/trained_gan.h5')
 #set_text += "set28"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set27/trained_gan.h5')
 #set_text += "set27"
@@ -127,7 +154,6 @@ set_text = ""
 #input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = input_physical_vars
-#generate_P = False
 
 
 ###############################################################################
@@ -138,7 +164,6 @@ set_text = ""
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set31/trained_gan.h5')
 #set_text += "set31"
-#alt_model_k = False
 #
 
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set30/trained_gan.h5')
@@ -148,7 +173,6 @@ set_text = ""
 #input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs']
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #physical_vars = input_physical_vars
-#generate_P = False
 
 ###############################################################################
 
@@ -156,7 +180,6 @@ set_text = ""
 
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set34/trained_gan.h5')
 #set_text += "set34"
-#alt_model_k = False
 #
 ##generator_k = load_model('../../GAN_data/GAN_7DLL/set37/trained_gan.h5')
 ##set_text += "set37"
@@ -176,56 +199,112 @@ set_text = ""
 #
 #physical_vars = input_physical_vars
 #
-#generate_P = False
 
 ###############################################################################
 
 #Added RICH2
 
-epochs = 500
-frac = frac = 1 #0.1
+#epochs = 500
+#frac = frac = 1 #0.1
 
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set43/trained_gan.h5')
 #set_text += "set43"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set45/trained_gan.h5')
 #set_text += "set45"
-#alt_model_p = False
-
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set57/trained_gan.h5')
-#set_text += "set57"
-#alt_model_k = False
-
-generator_p = load_model('../../GAN_data/GAN_7DLL/set60/trained_gan.h5')
-set_text += "set60"
-alt_model_p = False
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set58/trained_gan.h5')
 #set_text += "set58"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set61/trained_gan.h5')
 #set_text += "set61"
-#alt_model_p = False
 
-generator_k = load_model('../../GAN_data/GAN_7DLL/set63/half_trained_gan.h5')
-set_text += "set63"
-alt_model_k = False
-
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set6??/half_trained_gan.h5')
-#set_text += "set6??"
-#alt_model_p = False
-
-DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set63/trained_gan.h5')
+#set_text += "set63"
 #
-input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set66/trained_gan.h5')
+#set_text += "set66"
 
-physical_vars = input_physical_vars
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set64/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set64/penult_trained_gan.h5')
+#set_text += "set64"
+#set_text += "av"
+#set_text += "alt"
+#
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set67/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set67/penult_trained_gan.h5')
+#set_text += "set67"
+#set_text += "av"
+#set_text += "alt"
 
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set65/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set65/penult_trained_gan.h5')
+#set_text += "set65"
+#set_text += "av"
+#set_text += "alt"
+
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set68/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set68/penult_trained_gan.h5')
+#set_text += "set68"
+#set_text += "av"
+#set_text += "alt"
+
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set69/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set69/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set69/unused_data_mask.csv'
+#set_text += "set69"
+##set_text += "av"
+##set_text += "alt"
+#
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set72/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set72/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set72/unused_data_mask.csv'
+#set_text += "set72"
+##set_text += "av"
+##set_text += "alt"
+
+
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set70/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set70/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set70/unused_data_mask.csv'
+#set_text += "set70"
+##set_text += "av"
+#
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set73/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set73/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set73/unused_data_mask.csv'
+#set_text += "set73"
+##set_text += "av"
+##set_text += "alt"
+
+
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set75/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set75/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set75/unused_data_mask.csv'
+#set_text += "set75"
+##set_text += "av"
+##set_text += "alt"
+#
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set76/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set76/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set76/unused_data_mask.csv'
+#set_text += "set76"
+##set_text += "av"
+##set_text += "alt"
+
+#gen_av = False
+#concat = True
+#
+#
+#DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+#
+#input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+#
+##physical_vars = input_physical_vars
+#
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
 #                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
 #                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
@@ -233,8 +312,6 @@ physical_vars = input_physical_vars
 #                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
 #                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
 #                 'RICH2ConeNum']
-
-generate_P = False
 
 ###############################################################################
 
@@ -245,21 +322,40 @@ generate_P = False
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set59/trained_gan.h5')
 #set_text += "set59"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set62/trained_gan.h5')
 #set_text += "set62"
-#alt_model_p = False
+
+#Broken???
+
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set71/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set71/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set71/unused_data_mask.csv'
+#set_text += "set71"
+##set_text += "av"
+##set_text += "alt"
+#set_text += "test"
+#
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set74/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set74/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set74/unused_data_mask.csv'
+#set_text += "set74"
+##set_text += "av"
+##set_text += "alt"
+#set_text += "test"
+#
+#gen_av = True
+#concat = True
 #
 #input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
 #                       'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 
 #                       'RICH2ExitDist1',  'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 
 #                       'RICH1ConeNum', 'RICH2ConeNum']
 #
-#physical_vars = input_physical_vars
+##physical_vars = input_physical_vars
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
-
+#
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
 #                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
 #                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
@@ -267,8 +363,6 @@ generate_P = False
 #                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
 #                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
 #                 'RICH2ConeNum']
-
-generate_P = False
 
 ###############################################################################
 
@@ -279,11 +373,9 @@ generate_P = False
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set47/trained_gan.h5')
 #set_text += "set47"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set46/trained_gan.h5')
 #set_text += "set46"
-#alt_model_p = False
 #
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
@@ -298,7 +390,6 @@ generate_P = False
 #
 #physical_vars = input_physical_vars
 #
-#generate_P = False
 
 ###############################################################################
 
@@ -309,36 +400,29 @@ generate_P = False
 #
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set48/trained_gan.h5')
 #set_text += "set48"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set49/trained_gan.h5')
 #set_text += "set49"
-#alt_model_p = False
 #
 #Reduced inner layers to 4
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set50/trained_gan.h5')
 #set_text += "set50"
-#alt_model_k = False
 
 #Reduced inner layers to 4
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set51/trained_gan.h5')
 #set_text += "set51"
-#alt_model_p = False
 
 #Reduced inner layers to 6
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set52/trained_gan.h5')
 #set_text += "set52"
-#alt_model_k = False
 #
 #Reduced inner layers to 6
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set53/trained_gan.h5')
 #set_text += "set53"
-#alt_model_p = False
 #
 ##Reduced inner layers to 4, frac = 0.2
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set54/trained_gan.h5')
 #set_text += "set54"
-#alt_model_k = False
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #
@@ -359,7 +443,6 @@ generate_P = False
 #                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
 #                 'RICH2ConeNum']
 #
-#generate_P = False
 
 ###############################################################################
 
@@ -367,14 +450,12 @@ generate_P = False
 
 #epochs = 500 #(1000 for full gen)
 #frac = 1 #0.2
-#
+
 #generator_k = load_model('../../GAN_data/GAN_7DLL/set55/trained_gan.h5')
 #set_text += "set55.1"
-#alt_model_k = False
 #
 #generator_p = load_model('../../GAN_data/GAN_7DLL/set56/trained_gan.h5')
 #set_text += "set56.1"
-#alt_model_p = False
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #
@@ -387,40 +468,77 @@ generate_P = False
 #                 'RICH2ConeNum']
 #
 #physical_vars = input_physical_vars
-#
-#generate_P = False
 
 ###############################################################################
 
-subset=False
-sub_var = 'RICH1ExitDist0'
-sub_min = None
-sub_max = 10
+#RNN. Noise=250
 
-if subset:
-    subset_text = '_' + sub_var + '_' + str(sub_min) + '-' + str(sub_max)
-else:
-    subset_text = ''
-    
-RNN = False
-sort_var = 'TrackP'
+#Choose GPU to use
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
+RNN=True
+seq_length = 4 #Rows, default 32 (//4)
+batch_size = 128
+apparent_batch_size = batch_size - seq_length + 1
+sort_var = 'RICH1EntryDist0'
+#
+#generator_k = load_model('../../GAN_data/set90/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/set90/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/set90/unused_data_mask.csv'
+#set_text += "set90"
+##set_text += "av"
+###set_text += "alt"
+#
+#
+#generator_p = load_model('../../GAN_data/set93/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_data/set93/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/set93/unused_data_mask.csv'
+#set_text += "set93"
+##set_text += "av"
+###set_text += "alt"
+
+generator_k = load_model('../../GAN_data/set96/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/set96/penult_trained_gan.h5')
+unused_mask_loc_k = '../../GAN_data/set96/unused_data_mask.csv'
+set_text += "set96"
+#set_text += "av"
+##set_text += "alt"
 
 
-unused_mask_1 = False
-unused_mask_2 = False
+generator_p = load_model('../../GAN_data/set97/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_data/set97/penult_trained_gan.h5')
+unused_mask_loc_p = '../../GAN_data/set97/unused_data_mask.csv'
+set_text += "set97"
+#set_text += "av"
+##set_text += "alt"
+
+
+unused_mask_k = True
+unused_mask_p = True
+gen_av = False
+concat = True
+
+
+input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+
+#physical_vars = input_physical_vars
+
+DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+
+physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
+                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+                 'RICH2ConeNum']
 
 ###############################################################################
 
 print("Generators loaded")
-
-plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
-
-ref_particle = 'pi'
-particle_source_1 = 'KAON'
-particle_source_2 = 'PION'
-
-train_frac = 0.7
-examples=2000000
 
 #Old dimensional stuff
 #gen_input_dim = 100 #Dimension of random noise vector.
@@ -431,12 +549,17 @@ examples=2000000
 #noise_dim = gen_input_dim - input_phys_dim
 
 #New dim stuff
-noise_dim = 100 #Dimension of random noise vector.
+noise_dim = 250 #Dimension of random noise vector.
 input_phys_dim = len(input_physical_vars)
 phys_dim = len(physical_vars)
 DLLs_dim = len(DLLs)
 data_dim = DLLs_dim + phys_dim
 gen_input_dim = noise_dim + input_phys_dim 
+
+#If averaging, half examples each.
+if gen_av:
+    if not concat:
+        examples = examples//2
 
 ######################################################################################################################################################################################
 
@@ -508,6 +631,22 @@ def import_all_var(particle_source):
     return data
 
 
+def create_dataset(dataset, look_back=1):
+  
+    dataX, dataY = [], []
+    
+    for i in range(len(dataset)-look_back+1):
+    
+        #Extract [look_back] data rows starting from the ith row
+        a = dataset[i:(i+look_back), :]
+        
+        
+        dataX.append(a)
+        dataY.append(dataset[i + look_back - 1, :])
+    
+    return np.array(dataX), np.array(dataY)
+
+
 #Change DLLs e.g. from K-pi to p-K
 def change_DLL(DLL1, DLL2):
     
@@ -521,7 +660,7 @@ def change_DLL(DLL1, DLL2):
 
 def norm_info(particle_source):
 
-    data_norm = np.array(pd.read_csv(particle_source + '_norm.csv'))
+    data_norm = np.array(pd.read_csv('../../data/' + particle_source + '_norm.csv'))
 #    KAON_norm = np.array(pd.read_csv('KAON_norm.csv'))
     
     #shift = [0,x], div_num = [1,x], x starts at 1
@@ -587,7 +726,7 @@ def norm(x, particle_source):
 
 
 #Get training/test data and normalise
-def get_x_data(DLLs, ref_particle, physical_vars, particle_source, unused_mask):
+def get_x_data(DLLs, ref_particle, physical_vars, particle_source, examples, unused_mask, unused_mask_loc):
     
     #Get all data from particle source
     all_data = import_all_var(particle_source)
@@ -622,7 +761,8 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source, unused_mask):
     
     if unused_mask:
 
-        unused_data_mask = np.array(pd.read_csv('unused_data_mask.csv'))
+        unused_data_mask = np.array(pd.read_csv(unused_mask_loc))
+        unused_data_mask = np.array(unused_data_mask[:,1], dtype=bool)
 
         #Apply this mask to x_data, leaving (10000000 * (1- frac * train_frac)) points remaining e.g. 9300000 for frac = 0.1, train_frac = 0.7
         x_data_testable = x_data[unused_data_mask]
@@ -654,7 +794,69 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source, unused_mask):
 ######################################################################################################################################################################################
 
 #Make scatter plot w/ colour of correlations between two variables (e.g. DLLs)
-def col_scatt(var1, var2, var1_text, var2_text, max_var_index, x_range=None, y_range=None, zero_lines=0, save_index=0, size=1):
+def col_scatt(var1, var2, part_source_1, DLL_particle_1, ref_particle_1, part_source_2,  DLL_particle_2, ref_particle_2, max_var_index, real_gen_text, x_range=None, y_range=None, zero_lines=0, save_index=0, size=1):
+    
+    title = "./plots/" + set_text + "_" + part_source_1 + DLL_particle_1 + "_" + part_source_1 + DLL_particle_2 + "_" + real_gen_text + subset_text + "_colour.eps"        
+    
+    if real_gen_text == 'gen':
+        part_source_1_text = "Generated "
+        part_source_2_text = "Generated "
+    elif real_gen_text == 'real':
+        part_source_1_text = "Real "
+        part_source_2_text = "Real "
+    elif real_gen_text == 'real_gen':
+        part_source_1_text = "Generated "
+        part_source_2_text = "Real "
+        
+    if part_source_1 == 'KAON':
+        part_source_1_text += 'Kaon'
+    elif part_source_1 == 'PION':
+        part_source_1_text += 'Pion'
+
+    if part_source_2 == 'KAON':
+        part_source_2_text += 'Kaon'
+    elif part_source_2 == 'PION':
+        part_source_2_text += 'Pion'
+    
+    if ref_particle_1 == 'pi':
+        ref_particle_1_text = r'$\pi ) $'
+    elif ref_particle_1 == 'mu':
+        ref_particle_1_text = r'$\mu ) $'
+    elif ref_particle_1 == 'k':
+        ref_particle_1_text = 'K)'
+    else:
+        ref_particle_1_text = ref_particle_1 + ')'
+
+    if DLL_particle_1 == 'pi':
+        DLL_particle_1_text = r'$\pi - $'
+    elif DLL_particle_1 == 'mu':
+        DLL_particle_1_text = r'$\mu - $'
+    elif DLL_particle_1 == 'k':
+        DLL_particle_1_text = r'$K-$'
+    else:
+        DLL_particle_1_text = DLL_particle_1 + r'$-$'
+    
+    DLL_1_text = part_source_1_text + " " + r'$\Delta LL ($' + DLL_particle_1_text + ref_particle_1_text
+    
+    if ref_particle_2 == 'pi':
+        ref_particle_2_text = r'$\pi ) $'
+    elif ref_particle_2 == 'mu':
+        ref_particle_2_text = r'$\mu ) $'
+    elif ref_particle_2 == 'k':
+        ref_particle_2_text = 'K)'
+    else:
+        ref_particle_2_text = ref_particle_2 + ')'
+
+    if DLL_particle_2 == 'pi':
+        DLL_particle_2_text = r'$\pi - $'
+    elif DLL_particle_2 == 'mu':
+        DLL_particle_2_text = r'$\mu - $'
+    elif DLL_particle_2 == 'k':
+        DLL_particle_2_text = r'$K-$'
+    else:
+        DLL_particle_2_text = DLL_particle_2 + r'$-$'
+    
+    DLL_2_text = part_source_2_text + " " + r'$\Delta LL ($' + DLL_particle_2_text + ref_particle_2_text
     
     x = var1[0:max_var_index]
     y = var2[0:max_var_index]
@@ -671,8 +873,8 @@ def col_scatt(var1, var2, var1_text, var2_text, max_var_index, x_range=None, y_r
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.scatter(x, y, c=z, s=size, edgecolor='')
-    ax1.set_xlabel(var1_text)
-    ax1.set_ylabel(var2_text)
+    ax1.set_xlabel(DLL_1_text)
+    ax1.set_ylabel(DLL_2_text)
     ax1.set_xlim(x_range)
     ax1.set_ylim(y_range)
     
@@ -681,7 +883,8 @@ def col_scatt(var1, var2, var1_text, var2_text, max_var_index, x_range=None, y_r
         ax1.axvline(lw=1.0, color='k',ls='--')
     
     if(max_var_index >= save_index):
-        fig1.savefig("./plots/" + set_text + "_" + var1_text + "_" + var2_text + subset_text + "_colour.eps", format='eps', dpi=1000)
+        fig1.savefig(title, format='eps', dpi=1000)
+    
     
 ######################################################################################################################################################################################
 #Plot efficiency against momentum
@@ -724,7 +927,7 @@ def eff_mom_plot(p_points, source_1_eff_0, source_1_eff_5, source_2_eff_0, sourc
     s1_5 = ax1.scatter(p_points, source_1_eff_5, s = 5, marker = 'o', color = 'r')
     s2_0 = ax1.scatter(p_points, source_2_eff_0, s = 5, marker = 's', facecolors = 'none', edgecolors = 'k')
     s2_5 = ax1.scatter(p_points, source_2_eff_5, s = 5, marker = 's', color = 'k')    
-    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
+    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0)', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
     fig1.savefig("./plots/" + set_text + "_" + title + subset_text + ".eps", format='eps', dpi=1000)
     
 
@@ -885,7 +1088,26 @@ def id_misid_eff(DLL1, DLL2, phys_var_1, phys_var_2, bins_no, DLL_lim, DLL_no, p
 def plot_DLL_hist(DLL_data, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
         
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_hist.eps"
-    DLL_text = r'$\Delta LL ($' + DLL_particle + '-' + ref_particle + ')'
+        
+    if ref_particle == 'pi':
+        ref_particle_text = r'$\pi ) $'
+    elif ref_particle == 'mu':
+        ref_particle_text = r'$\mu ) $'
+    elif ref_particle == 'k':
+        ref_particle_text = 'K)'
+    else:
+        ref_particle_text = ref_particle + ')'
+
+    if DLL_particle == 'pi':
+        DLL_particle_text = r'$\pi - $'
+    elif DLL_particle == 'mu':
+        DLL_particle_text = r'$\mu - $'
+    elif DLL_particle == 'k':
+        DLL_particle_text = r'$K-$'
+    else:
+        DLL_particle_text = DLL_particle + r'$-$'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_particle_text + ref_particle_text
             
     fig1, ax1 = plt.subplots()
     ax1.cla()
@@ -903,11 +1125,33 @@ def plot_DLL_hist(DLL_data, DLL_particle, ref_particle, particle_source, bin_no=
     
     fig1.savefig("./plots/" + set_text + "_" + title, format='eps', dpi=2500)
 
-def plot_two_DLL_hist(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
+
+def plot_two_DLL_hist(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle_source, legend_loc, bin_no=200, x_range=None, y_range=None):
         
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_two_hist.pdf"
-    DLL_text = r'$\Delta LL ($' + DLL_particle + '-' + ref_particle + ')'
-            
+    
+    if ref_particle == 'pi':
+        ref_particle_text = r'$\pi ) $'
+    elif ref_particle == 'mu':
+        ref_particle_text = r'$\mu ) $'
+    elif ref_particle == 'k':
+        ref_particle_text = 'K)'
+    else:
+        ref_particle_text = ref_particle + ')'
+
+    if DLL_particle == 'pi':
+        DLL_particle_text = r'$\pi - $'
+    elif DLL_particle == 'mu':
+        DLL_particle_text = r'$\mu - $'
+    elif DLL_particle == 'k':
+        DLL_particle_text = r'$K-$'
+    else:
+        DLL_particle_text = DLL_particle + r'$-$'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_particle_text + ref_particle_text
+        
+    labels = ['Generated', 'Real']
+    
     fig1, ax1 = plt.subplots()
     ax1.cla()
     
@@ -920,14 +1164,66 @@ def plot_two_DLL_hist(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, partic
     ax1.set_xlabel(DLL_text)
     ax1.set_ylabel("Density of events")
     
-    ax1.hist(DLL_data_1, bins=bin_no, range=x_range, density=True, histtype='step', color = 'b', linewidth=0.5)
-    ax1.hist(DLL_data_2, bins=bin_no, range=x_range, density=True, histtype='step', color='r', linewidth=0.5)
+    ax1.hist(DLL_data_1, bins=bin_no, range=x_range, density=True, histtype='step', color = 'b', linewidth=0.5, label=labels[0])
+    ax1.hist(DLL_data_2, bins=bin_no, range=x_range, density=True, histtype='step', color='r', linewidth=0.5, label=labels[1])
+
+    ax1.legend(loc=legend_loc)
 
 #    ax1.hist(DLL_data_1, bins=bin_no, range=x_range, density=True, histtype='stepfilled', alpha=0.8, color = 'r')
 #    ax1.hist(DLL_data_2, bins=bin_no, range=x_range, density=True, histtype='stepfilled', alpha=0.6, color='b')
 
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+
+def plot_four_DLL_hist(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, legend_loc, bin_no=200, x_range=None, y_range=None):
+
+    title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_four_hist.pdf"
+
+    if ref_particle == 'pi':
+        ref_particle_text = r'$\pi ) $'
+    elif ref_particle == 'mu':
+        ref_particle_text = r'$\mu ) $'
+    elif ref_particle == 'k':
+        ref_particle_text = 'K)'
+    else:
+        ref_particle_text = ref_particle + ')'
+
+    if DLL_particle == 'pi':
+        DLL_particle_text = r'$\pi - $'
+    elif DLL_particle == 'mu':
+        DLL_particle_text = r'$\mu - $'
+    elif DLL_particle == 'k':
+        DLL_particle_text = r'$K-$'
+    else:
+        DLL_particle_text = DLL_particle + r'$-$'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_particle_text + ref_particle_text
+
+    labels = ['Kaon generated', 'Kaon real', 'Pion generated', 'Pion real']
+
+    fig1, ax1 = plt.subplots()
+    ax1.cla()
+
+    if y_range is not None:
+        ax1.set_ylim(bottom=0, top=y_range)
+
+    if x_range is not None:
+        ax1.set_xlim(x_range)
+
+    ax1.set_xlabel(DLL_text)
+    ax1.set_ylabel("Density of events")
+
+    ax1.hist(DLL_data_1_gen, bins=bin_no, range=x_range, density=True, histtype='step', color = 'r', linewidth=1, label=labels[0])
+    ax1.hist(DLL_data_1_real, bins=bin_no, range=x_range, density=True, histtype='bar', alpha=0.3, color = 'r', linewidth=0.5, label=labels[1])
+    ax1.hist(DLL_data_2_gen, bins=bin_no, range=x_range, density=True, histtype='step', color = 'b', linewidth=1, label=labels[2])
+    ax1.hist(DLL_data_2_real, bins=bin_no, range=x_range, density=True, histtype='bar', alpha=0.3, color='b', linewidth=0.5, label=labels[3])
+
+    ax1.legend(loc=legend_loc)
+
+#    ax1.hist(DLL_data_1, bins=bin_no, range=x_range, density=True, histtype='stepfilled', alpha=0.8, color = 'r')
+#    ax1.hist(DLL_data_2, bins=bin_no, range=x_range, density=True, histtype='stepfilled', alpha=0.6, color='b')
+
+    fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
 
 def plot_gen_hist(var_data, var_name, particle_source, bin_no=200, x_range=None, y_range=None):
@@ -985,6 +1281,146 @@ def plot_hist_ratio(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
 
+#Using pdfs for some reason?
+def plot_hist_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
+
+    title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_ratios.pdf"
+    
+    if ref_particle == 'pi':
+        ref_particle_text = r'$\pi ) $'
+    elif ref_particle == 'mu':
+        ref_particle_text = r'$\mu ) $'
+    elif ref_particle == 'k':
+        ref_particle_text = 'K)'
+    else:
+        ref_particle_text = ref_particle + ')'
+
+    if DLL_particle == 'pi':
+        DLL_particle_text = r'$\pi - $'
+    elif DLL_particle == 'mu':
+        DLL_particle_text = r'$\mu - $'
+    elif DLL_particle == 'k':
+        DLL_particle_text = r'$K-$'
+    else:
+        DLL_particle_text = DLL_particle + r'$-$'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_particle_text + ref_particle_text
+
+    labels = ['Kaon', 'Pion']
+            
+    fig1, ax1 = plt.subplots()
+    ax1.cla()
+    
+    if y_range is not None:
+        ax1.set_ylim(bottom=0, top=y_range)
+
+    if x_range is not None:
+        ax1.set_xlim(x_range)
+    
+    hist_kaon_1, _ = np.histogram(DLL_data_1_gen, bins=bin_no, range=x_range, density=True)
+    hist_kaon_2, _ = np.histogram(DLL_data_1_real, bins=bin_no, range=x_range, density=True)
+    ratio_kaon = np.divide(hist_kaon_2, hist_kaon_1)
+
+    hist_pion_1, _ = np.histogram(DLL_data_2_gen, bins=bin_no, range=x_range, density=True)
+    hist_pion_2, _ = np.histogram(DLL_data_2_real, bins=bin_no, range=x_range, density=True)
+    ratio_pion = np.divide(hist_pion_2, hist_pion_1)
+    
+#    ax1.set_xlabel(DLL_text)
+    ax1.set_ylabel("Ratio of densities")
+    
+    DLL = np.linspace(x_range[0],x_range[1],num=bin_no)
+    ax1.plot(DLL, ratio_kaon, label=labels[0], color='r', alpha=0.75)
+    ax1.plot(DLL, ratio_pion, label=labels[1], color='b', alpha=0.75)
+
+#    ax1.legend()
+
+    ax1.xaxis.tick_top()
+    ax1.set_xticklabels([])
+
+    aspect_ratio = (x_range[1] - x_range[0]) / 10
+    ax1.set_aspect(aspect=aspect_ratio)
+
+    fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
+
+
+
+def plot_hist_and_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, legend_loc, bin_no_hist=200, bin_no_ratio=200, x_range=None, y_range_hist=None, y_range_ratio=None):
+
+    title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_hists_and_ratios.pdf"
+    
+    if ref_particle == 'pi':
+        ref_particle_text = r'$\pi ) $'
+    elif ref_particle == 'mu':
+        ref_particle_text = r'$\mu ) $'
+    elif ref_particle == 'k':
+        ref_particle_text = 'K)'
+    else:
+        ref_particle_text = ref_particle + ')'
+
+    if DLL_particle == 'pi':
+        DLL_particle_text = r'$\pi - $'
+    elif DLL_particle == 'mu':
+        DLL_particle_text = r'$\mu - $'
+    elif DLL_particle == 'k':
+        DLL_particle_text = r'$K-$'
+    else:
+        DLL_particle_text = DLL_particle + r'$-$'
+    
+    DLL_text = r'$\Delta LL ($' + DLL_particle_text + ref_particle_text
+
+    ratios_labels = ['Kaon', 'Pion']
+    hist_labels = ['Kaon generated', 'Kaon real', 'Pion generated', 'Pion real']
+    
+    hist_kaon_1, _ = np.histogram(DLL_data_1_gen, bins=bin_no_ratio, range=x_range, density=True)
+    hist_kaon_2, _ = np.histogram(DLL_data_1_real, bins=bin_no_ratio, range=x_range, density=True)
+    ratio_kaon = np.divide(hist_kaon_2, hist_kaon_1)
+
+    hist_pion_1, _ = np.histogram(DLL_data_2_gen, bins=bin_no_ratio, range=x_range, density=True)
+    hist_pion_2, _ = np.histogram(DLL_data_2_real, bins=bin_no_ratio, range=x_range, density=True)
+    ratio_pion = np.divide(hist_pion_2, hist_pion_1)
+
+
+    # Two subplots, the axes array is 1-d
+    fig, axarr = plt.subplots(2, sharex=True, figsize=(4, 8))
+
+
+    if y_range_hist is not None:
+        axarr[0].set_ylim(bottom=0, top=y_range_hist)
+
+    if x_range is not None:
+        axarr[0].set_xlim(x_range)
+
+    axarr[0].set_ylabel("Density of events")
+
+    axarr[0].hist(DLL_data_1_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'r', linewidth=1, label=hist_labels[0])
+    axarr[0].hist(DLL_data_1_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.3, color = 'r', linewidth=0.5, label=hist_labels[1])
+    axarr[0].hist(DLL_data_2_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'b', linewidth=1, label=hist_labels[2])
+    axarr[0].hist(DLL_data_2_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.3, color='b', linewidth=0.5, label=hist_labels[3])
+
+    axarr[0].legend(loc=legend_loc)
+    
+    axarr[0].set_aspect(aspect=1000)
+
+    
+    if y_range_ratio is not None:
+        axarr[1].set_ylim(bottom=0, top=y_range_ratio)
+
+    if x_range is not None:
+        axarr[1].set_xlim(x_range)
+
+#    axarr[0].set_xlabel(DLL_text)
+    axarr[1].set_ylabel("Ratio of densities")
+    
+    DLL = np.linspace(x_range[0],x_range[1],num=bin_no_ratio)
+    axarr[1].plot(DLL, ratio_kaon, label=ratios_labels[0], color='r')
+    axarr[1].plot(DLL, ratio_pion, label=ratios_labels[1], color='b')
+#    axarr[0].legend()
+    axarr[1].set_aspect(aspect=10)
+    axarr[1].set_xlabel(DLL_text)
+
+    fig.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
+
+
 def histogram_intersection(DLL_data_1, DLL_data_2, bin_no=200, x_range=None):
    
    hist1, bins = np.histogram(DLL_data_1, bins=bin_no, range=x_range, density=True)
@@ -996,7 +1432,6 @@ def histogram_intersection(DLL_data_1, DLL_data_2, bin_no=200, x_range=None):
    return sm
 
 ######################################################################################################################################################################################
-
 
 def plot_examples(generated_vars, var_name, bin_no=400, x_range = None, y_range = None):
     
@@ -1017,12 +1452,58 @@ def plot_examples(generated_vars, var_name, bin_no=400, x_range = None, y_range 
     
     fig1.savefig("./plots/" + set_text + "_" + title, format='eps', dpi=2500)
 
+
+def generate_data(x_test, generator, alt_model, data_no):
+    
+    noise = np.random.normal(0, 1, size=[data_no, noise_dim])
+    phys_data = x_test[:, DLLs_dim:DLLs_dim + input_phys_dim]
+    gen_input = np.concatenate((noise, phys_data), axis=1)
+
+    #Generate fake data (DLLs only)
+    if RNN:
+
+        noise_RNN, _ = create_dataset(noise, seq_length)
+        phys_data_RNN, _ = create_dataset(phys_data, seq_length)
+        gen_input_RNN = np.concatenate((noise_RNN, phys_data_RNN), axis=2)
+
+        #Generate fake data (DLLs only)
+        generated_vars = generator.predict(gen_input_RNN, batch_size=apparent_batch_size)
+        generated_vars = np.concatenate((generated_vars[0,:-1,:], generated_vars[:,-1,:]))
+
+    elif alt_model:
+        generated_vars = generator.predict([noise, phys_data])
+
+    else:
+        #Generate fake data (DLLs only)
+        generated_vars = generator.predict(gen_input)
+
+    return generated_vars
+
+#Shift data (real and generated) back to proper distribution
+def data_shift(x_test, div_num, shift, generated_vars, particle_source):
+    
+    for i in range(x_test.shape[1]):
+        x_test[:,i] = np.multiply(x_test[:,i], div_num[i])
+        x_test[:,i] = np.add(x_test[:,i], shift[i])
+
+    for i in range(generated_vars.shape[1]):        
+    
+        generated_vars[:,i] = np.multiply(generated_vars[:,i], div_num[i])
+        generated_vars[:,i] = np.add(generated_vars[:,i], shift[i])
+            
+        if i<DLLs_dim:
+            plot_examples(generated_vars[:,i], particle_source + '_DLL'+ DLLs[i])
+        else:
+            plot_examples(generated_vars[:,i], physical_vars[i-DLLs_dim])
+
+    return generated_vars
+
 ######################################################################################################################################################################################
 
 print("Importing data...")
 #Get the training and testing data
-x_test_1, shift_1, div_num_1 = get_x_data(DLLs, ref_particle, physical_vars, particle_source_1, examples, unused_mask_1)
-x_test_2, shift_2, div_num_2 = get_x_data(DLLs, ref_particle, physical_vars, particle_source_2, examples, unused_mask_2)
+x_test_1, shift_1, div_num_1 = get_x_data(DLLs, ref_particle, physical_vars, particle_source_1, examples, unused_mask_k, unused_mask_loc_k)
+x_test_2, shift_2, div_num_2 = get_x_data(DLLs, ref_particle, physical_vars, particle_source_2, examples, unused_mask_p, unused_mask_loc_p)
 print("Data imported")
 
 ######################################################################################################################################################################################
@@ -1030,32 +1511,31 @@ print("Data imported")
 print("Generating data...")
 #KAON data
 #data_batch_1 = x_test_1[np.random.randint(0, x_test_1.shape[0], size=examples)]
-            
-noise_1 = np.random.normal(0, 1, size=[examples, noise_dim])
-phys_data_1 = x_test_1[:, DLLs_dim:DLLs_dim + input_phys_dim]
 
-if alt_model_k:
-    generated_vars_k = generator_k.predict([noise_1, phys_data_1])
+if gen_av:
+    if concat:
+        generated_vars_k_1 = generate_data(x_test_1[:examples//2], generator_k, alt_model_k, examples//2)
+        generated_vars_k_2 = generate_data(x_test_1[examples//2:], generator_k_2, alt_model_k, examples//2)
+    else:
+        generated_vars_k_1 = generate_data(x_test_1, generator_k, alt_model_k, examples)
+        generated_vars_k_2 = generate_data(x_test_1, generator_k_2, alt_model_k, examples)
 else:
-    gen_input_1 = np.zeros((examples, gen_input_dim))            
-    gen_input_1[:, :-input_phys_dim] = noise_1
-    gen_input_1[:, -input_phys_dim:] = phys_data_1
-    generated_vars_k = generator_k.predict(gen_input_1)
-
+    generated_vars_k = generate_data(x_test_1, generator_k, alt_model_k, examples)
 
 ######################################################################################################################################################################################
 
 #PION data
 #data_batch_2 = x_test_2[np.random.randint(0, x_test_2.shape[0], size=examples)]
 
-noise_2 = np.random.normal(0, 1, size=[examples, noise_dim])            
-phys_data_2 = x_test_2[:, DLLs_dim:DLLs_dim + input_phys_dim]
-
-gen_input_2 = np.zeros((examples, gen_input_dim))            
-gen_input_2[:, :-input_phys_dim] = noise_2
-gen_input_2[:, -input_phys_dim:] = phys_data_2
-    
-generated_vars_p = generator_p.predict(gen_input_2)
+if gen_av:
+    if concat:
+        generated_vars_p_1 = generate_data(x_test_2[:examples//2], generator_p, alt_model_p, examples//2)
+        generated_vars_p_2 = generate_data(x_test_2[examples//2:], generator_p_2, alt_model_p, examples//2)
+    else:
+        generated_vars_p_1 = generate_data(x_test_2, generator_p, alt_model_p, examples)
+        generated_vars_p_2 = generate_data(x_test_2, generator_p_2, alt_model_p, examples)
+else:
+    generated_vars_p = generate_data(x_test_2, generator_p, alt_model_p, examples)
 
 print("Data generated")
 
@@ -1063,47 +1543,48 @@ print("Data generated")
 
 print("Plotting data...")
 
-#Shift KAON data (real and generated) back to proper distribution
-for i in range(x_test_1.shape[1]):
-    x_test_1[:,i] = np.multiply(x_test_1[:,i], div_num_1[i])
-    x_test_1[:,i] = np.add(x_test_1[:,i], shift_1[i])
-
-for i in range(generated_vars_k.shape[1]):        
+#Shift data to correct dist and plot examples of graphs 
+if gen_av:
     
-    generated_vars_k[:,i] = np.multiply(generated_vars_k[:,i], div_num_1[i])
-    generated_vars_k[:,i] = np.add(generated_vars_k[:,i], shift_1[i])
-        
-    if i<DLLs_dim:
-        plot_examples(generated_vars_k[:,i], 'KAON_DLL'+ DLLs[i])
-    else:
-        plot_examples(generated_vars_k[:,i], physical_vars[i-DLLs_dim])
-
-#Shift PION data (real and generated) back to proper distribution
-for i in range(x_test_2.shape[1]):
-    x_test_2[:,i] = np.multiply(x_test_2[:,i], div_num_2[i])
-    x_test_2[:,i] = np.add(x_test_2[:,i], shift_2[i])
-
-for i in range(generated_vars_p.shape[1]):        
+    dummy_arr = np.zeros((1,1))
     
-    generated_vars_p[:,i] = np.multiply(generated_vars_p[:,i], div_num_2[i])
-    generated_vars_p[:,i] = np.add(generated_vars_p[:,i], shift_2[i])
+    generated_vars_k_1 = data_shift(x_test_1, div_num_1, shift_1, generated_vars_k_1, particle_source_1)
+    generated_vars_k_2 = data_shift(dummy_arr, div_num_1, shift_1, generated_vars_k_2, particle_source_1)    
+    generated_vars_p_1 = data_shift(x_test_2, div_num_2, shift_2, generated_vars_p_1, particle_source_2)
+    generated_vars_p_2 = data_shift(dummy_arr, div_num_2, shift_2, generated_vars_p_2, particle_source_2)
+    
+    if concat:
+        generated_vars_k = np.concatenate((generated_vars_k_1, generated_vars_k_2))
+        generated_vars_p = np.concatenate((generated_vars_p_1, generated_vars_p_2))
+    else:    
+    
+        generated_vars_k = np.add(generated_vars_k_1, generated_vars_k_2)
+        generated_vars_k = np.divide(generated_vars_k, 2)
         
-    if i<DLLs_dim:
-        plot_examples(generated_vars_p[:,i], 'PION_DLL'+ DLLs[i])
-    else:
-        plot_examples(generated_vars_p[:,i], physical_vars[i-DLLs_dim])
+        generated_vars_p = np.add(generated_vars_p_1, generated_vars_p_2)
+        generated_vars_p = np.divide(generated_vars_p, 2)
+    
+else:
+    generated_vars_k = data_shift(x_test_1, div_num_1, shift_1, generated_vars_k, particle_source_1)
+    generated_vars_p = data_shift(x_test_2, div_num_2, shift_2, generated_vars_p, particle_source_2)
 
 ######################################################################################################################################################################################
+#All other plotting functions listed from here e.g. scatter graphs, efficiency plots etc
 
 max_var_index = 10000
 #Scatter plot between DLLd and DLLk for KAON and PION data
-col_scatt(generated_vars_k[:,2], generated_vars_k[:,3], "DLLk_k", "DLLd_k", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
-col_scatt(generated_vars_p[:,2], generated_vars_p[:,3], "DLLk_p", "DLLd_p", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
+#DLLk_k against DLLp_k (gen and real)
+col_scatt(generated_vars_k[:,2], generated_vars_k[:,3], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[3], ref_particle, max_var_index, 'gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+col_scatt(x_test_1[:,2], x_test_1[:,3], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[3], ref_particle, max_var_index, 'real', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
-#Scatter plot between DLLk for KAON data (generated and original)
-col_scatt(generated_vars_k[:,2], x_test_1[:,2], "DLLk_k", "DLLk_k", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
-col_scatt(generated_vars_p[:,2], x_test_2[:,2], "DLLk_p", "DLLk_p", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+#DLLk_p against DLLp_p (gen and real)
+col_scatt(generated_vars_p[:,2], generated_vars_p[:,3], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[3], ref_particle, max_var_index, 'gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+col_scatt(x_test_2[:,2], x_test_2[:,3], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[3], ref_particle, max_var_index, 'real', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+
+#Scatter plot between DLLk for KAON and PION data (generated and original)
+col_scatt(generated_vars_k[:,2], x_test_1[:,2], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[2], ref_particle, max_var_index, 'real_gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+col_scatt(generated_vars_p[:,2], x_test_2[:,2], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[2], ref_particle, max_var_index, 'real_gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
 #Scatter plot between TrackP for KAON data if P generated (generated and original)
 #if generate_P:
@@ -1124,6 +1605,7 @@ if generate_P:
 
 #Calculate efficiency using generated DLLs and real momementa... Doesn't work when with models which generate P/Pt.
 eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, generated_vars_k[:,2], x_test_1[:,6], generated_vars_p[:,2], x_test_2[:,6], 'k', ref_particle, particle_source_1, particle_source_2, 'real_P')
+eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, x_test_1[:,2], x_test_1[:,6], x_test_2[:,2], x_test_2[:,6], 'k', ref_particle, particle_source_1, particle_source_2, 'real_DLL-P')
 
 ######################################################################################################################################################################################
 
@@ -1160,124 +1642,124 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,9], x_test_2[:,9], misid_b
 
 #'RICH1EntryDist0'
 #Increase in KID as dist increases
-#misid_bin_no = 4
-#phys_var_range = [0,40]
-#x_range = [0.2, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'real_DLL', True)
-#
-##Increases with distance
-##'RICH1ExitDist0'
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'real_DLL', True)
-#
-##'RICH2EntryDist0'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,400]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'real_DLL', True)
-#
-#
-##'RICH2ExitDist0'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'real_DLL', True)
-#
-##'RICH1EntryDist1'
-##Increases with dist
-#misid_bin_no = 4
-#phys_var_range = [0,40]
-#x_range = [0.2, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'real_DLL', True)
-#
-##'RICH1ExitDist1'
-##Increase with distance
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'real_DLL', True)
-#
-##'RICH2EntryDist1'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,400]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'real_DLL', True)
-#
-#
-##'RICH2ExitDist1'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'real_DLL', True)
-#
-#
-#
-##'RICH1EntryDist2'
-##Incrases, last two together
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.2, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'real_DLL', True)
-#
-##'RICH1ExitDist2'
-##Increases with distance
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'real_DLL', True)
-#
-#
-##'RICH2EntryDist2'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29],x_range, 'real_DLL', True)
-#
-#
-##'RICH2ExitDist2'
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'real_DLL', True)
+misid_bin_no = 4
+phys_var_range = [0,40]
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'real_DLL', True)
+
+#Increases with distance
+#'RICH1ExitDist0'
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'real_DLL', True)
+
+#'RICH2EntryDist0'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,400]
+x_range = [0.3, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'real_DLL', True)
+
+
+#'RICH2ExitDist0'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.3, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'real_DLL', True)
+
+#'RICH1EntryDist1'
+#Increases with dist
+misid_bin_no = 4
+phys_var_range = [0,40]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'real_DLL', True)
+
+#'RICH1ExitDist1'
+#Increase with distance
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'real_DLL', True)
+
+#'RICH2EntryDist1'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,400]
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'real_DLL', True)
+
+
+#'RICH2ExitDist1'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'real_DLL', True)
+
+
+
+#'RICH1EntryDist2'
+#Incrases, last two together
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'real_DLL', True)
+
+#'RICH1ExitDist2'
+#Increases with distance
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'real_DLL', True)
+
+
+#'RICH2EntryDist2'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29],x_range, 'real_DLL', True)
+
+
+#'RICH2ExitDist2'
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'real_DLL', True)
 
 ######################################################################################################################################################################################
 
-##Increase in KID as num decreases
-##'RICH1ConeNum'
-#misid_bin_no = 4
-#phys_var_range = [0,24]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'real_DLL', True)
-#
-#
-##Increase in KID as num decreases
-##'RICH2ConeNum'
-#misid_bin_no = 4
-#phys_var_range = [0,4]
-#x_range = [0.1, 1]
-#id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'gen_DLL', True)
-#id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'real_DLL', True)
+#Increase in KID as num decreases
+#'RICH1ConeNum'
+misid_bin_no = 4
+phys_var_range = [0,24]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'real_DLL', True)
+
+
+#Increase in KID as num decreases
+#'RICH2ConeNum'
+misid_bin_no = 4
+phys_var_range = [0,4]
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'real_DLL', True)
 
 
 ######################################################################################################################################################################################
@@ -1312,21 +1794,97 @@ plot_DLL_hist(generated_vars_p[:,5], DLLs[5], ref_particle, particle_source_2, 6
 
 ######################################################################################################################################################################################
 
-plot_DLL_hist(x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 750, [-40, 80], 0.07)
-plot_DLL_hist(generated_vars_k[:,2], DLLs[2], ref_particle, particle_source_1, 750, [-40, 80], 0.07)
+#plot_DLL_hist(x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 750, [-40, 80], 0.07)
+#plot_DLL_hist(generated_vars_k[:,2], DLLs[2], ref_particle, particle_source_1, 750, [-40, 80], 0.07)
+#
+#plot_two_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 'upper right', 250, [-30, 80], 0.07)
+#plot_hist_ratio(generated_vars_k[:,2], x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-30, 80], 2)
+#hist_overlap_1 = histogram_intersection(generated_vars_k[:,2], x_test_1[:,2], 750, [-40, 80])
+#
+#plot_DLL_hist(x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 750, [-60, 20], 0.09)
+#plot_DLL_hist(generated_vars_p[:,2], DLLs[2], ref_particle, particle_source_2, 750, [-60, 20], 0.09)
+#
+#plot_two_DLL_hist(generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, [-60, 20], 0.09)
+#plot_hist_ratio(generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 100, [-60, 20], 2)
+#hist_overlap_2 = histogram_intersection(generated_vars_p[:,2], x_test_2[:,2], 750, [-60, 20])
+#
+#print("Overlaps:", hist_overlap_1, hist_overlap_2)
 
-plot_two_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 250, [-30, 80], 0.07)
-plot_hist_ratio(generated_vars_k[:,2], x_test_1[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-30, 80], 2)
-hist_overlap_1 = histogram_intersection(generated_vars_k[:,2], x_test_1[:,2], 750, [-40, 80])
+########################################################
 
-plot_DLL_hist(x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 750, [-60, 20], 0.09)
-plot_DLL_hist(generated_vars_p[:,2], DLLs[2], ref_particle, particle_source_2, 750, [-60, 20], 0.09)
+#e:
+plot_four_DLL_hist(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, [-80, 20], 0.16)
+plot_hist_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_1, 100, [-80, 20], 2)
+hist_overlap_1 = histogram_intersection(generated_vars_k[:,0], x_test_1[:,0], 750, [-80, 20])
+hist_overlap_2 = histogram_intersection(generated_vars_p[:,0], x_test_2[:,0], 750, [-80, 20])
 
-plot_two_DLL_hist(generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 750, [-60, 20], 0.09)
-plot_hist_ratio(generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 100, [-60, 20], 2)
-hist_overlap_2 = histogram_intersection(generated_vars_p[:,2], x_test_2[:,2], 750, [-60, 20])
+print("Overlaps for DLL(" + DLLs[0] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_1)
+print("Pion:", hist_overlap_2)
 
-print("Overlaps:", hist_overlap_1, hist_overlap_2)
+########################################################
+
+#mu:
+plot_four_DLL_hist(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, [-50, 20], 0.3)
+plot_hist_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_1, 100, [-50, 20], 2)
+hist_overlap_3 = histogram_intersection(generated_vars_k[:,1], x_test_1[:,1], 750, [-50, 20])
+hist_overlap_4 = histogram_intersection(generated_vars_p[:,1], x_test_2[:,1], 750, [-50, 20])
+
+print("Overlaps for DLL(" + DLLs[1] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_3)
+print("Pion:", hist_overlap_4)
+
+#plot_hist_and_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 80], 0.09, 2)
+
+########################################################
+
+#k:
+plot_four_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, [-60, 80], 0.09)
+plot_hist_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-60, 80], 2)
+hist_overlap_5 = histogram_intersection(generated_vars_k[:,2], x_test_1[:,2], 750, [-60, 80])
+hist_overlap_6 = histogram_intersection(generated_vars_p[:,2], x_test_2[:,2], 750, [-60, 80])
+
+print("Overlaps for DLL(" + DLLs[2] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_5)
+print("Pion:", hist_overlap_6)
+
+########################################################
+
+#p:
+plot_four_DLL_hist(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+plot_hist_ratios(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_1, 100, [-60, 60], 2)
+hist_overlap_7 = histogram_intersection(generated_vars_k[:,3], x_test_1[:,3], 750, [-60, 60])
+hist_overlap_8 = histogram_intersection(generated_vars_p[:,3], x_test_2[:,3], 750, [-60, 60])
+
+print("Overlaps for DLL(" + DLLs[3] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_7)
+print("Pion:", hist_overlap_8)
+
+########################################################
+
+#d:
+plot_four_DLL_hist(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+plot_hist_ratios(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_1, 100, [-60, 60], 2)
+hist_overlap_9 = histogram_intersection(generated_vars_k[:,4], x_test_1[:,4], 750, [-60, 60])
+hist_overlap_10 = histogram_intersection(generated_vars_p[:,4], x_test_2[:,4], 750, [-60, 60])
+
+print("Overlaps for DLL(" + DLLs[4] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_9)
+print("Pion:", hist_overlap_10)
+
+########################################################
+
+#bt:
+plot_four_DLL_hist(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+plot_hist_ratios(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_1, 100, [-60, 60], 2)
+hist_overlap_11 = histogram_intersection(generated_vars_k[:,5], x_test_1[:,5], 750, [-60, 60])
+hist_overlap_12 = histogram_intersection(generated_vars_p[:,5], x_test_2[:,5], 750, [-60, 60])
+
+print("Overlaps for DLL(" + DLLs[5] + "-" + ref_particle + "):")
+print("Kaon:", hist_overlap_11)
+print("Pion:", hist_overlap_12)
+
+########################################################
 
 print("Data plotted")
 
