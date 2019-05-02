@@ -20,7 +20,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.stats import gaussian_kde
 import math
 import time
-from sklearn.preprocessing import QuantileTransformer
+#from sklearn.preprocessing import QuantileTransformer
 
 #Time total run
 t_init = time.time()
@@ -39,7 +39,7 @@ datafile_pion = '../data/mod-PID-train-data-PIONS.hdf'
 data_pion = pd.read_hdf(datafile_pion, 'PIONS') 
 print(data_pion.columns)
 
-subset=True
+subset=False
 sub_var = 'RICH2EntryDist0'
 sub_min = None
 sub_max = 30
@@ -48,7 +48,6 @@ if subset:
     subset_text = '_' + sub_var + '_' + str(sub_min) + '-' + str(sub_max)
 else:
     subset_text = ''
-
 
 if subset:
     if sub_min is not None:
@@ -87,7 +86,9 @@ def get_data(var_type, particle_source):
     return data
 
 
-#Change DLLs e.g. from K-pi to p-K
+#Change DLLs e.g. from (K-pi) and (p-pi) to p-K
+#Input: Two DLL arrays w.r.t. pi, to be changed s.t. the new DLL is w.r.t. the first particle in each DLL
+#Returns: New DLL array e.g. DLL(p-K)
 def change_DLL(DLL1, DLL2):
     
     if(not np.array_equal(DLL1, DLL2)):
@@ -295,7 +296,7 @@ def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_
     s1_5 = ax1.scatter(p_points, source1_eff_5, s = 5, marker = 'o', color = 'r')
     s2_0 = ax1.scatter(p_points, source2_eff_0, s = 5, marker = 's', facecolors = 'none', edgecolors = 'k')
     s2_5 = ax1.scatter(p_points, source2_eff_5, s = 5, marker = 's', color = 'k')    
-    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
+    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0)', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
     fig1.savefig(title, format='eps', dpi=1000)
 
 
