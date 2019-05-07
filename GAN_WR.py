@@ -53,7 +53,6 @@ os.environ["CUDA_VISIBLE_DEVICES"]="2" #Choose GPU to use
 
 os.environ["KERAS_BACKEND"] = "tensorflow" #Using tensorflow backend
 
-
 plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Some tunable variables/parameters...
@@ -61,7 +60,7 @@ plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
 
 #Training variables
 batch_size = 128 #Default = 128
-epochs = 200 #Default = 100
+epochs = 250 #Default = 100
 
 #Parameters for Adam optimiser
 learning_rate = 0.0001 #Default = 0.0001 (Adam default: learning_rate = 0.001)
@@ -69,25 +68,30 @@ beta_1=0.5 #Default = 0.5 (Adam default: beta_1 = 0.9)
 beta_2=0.9 #Default = 0.9 (Adam default: beta_2 = 0.999)
 
 #Define how much of the total data to use, and how much of that to train with
-frac = 0.1 #Default = 0.1
+frac = 0.25 #Default = 0.1
 train_frac = 0.7 #Default = 0.7
 
 #The training ratio is the number of discriminator updates per generator update
-training_ratio = 1 #Default 5 as per the paper
-grad_penalty_weight = 5  #Default 10 as per the paper
+training_ratio = 2 #Default 5 as per the paper
+grad_penalty_weight = 10  #Default 10 as per the paper
 
-grad_loss = True #Use gradient penalty loss
-WGAN=True #Use Wasserstein loss function
-RNN = False #Use recurrent layers
+grad_loss = False #Use gradient penalty loss
+WGAN = False #Use Wasserstein loss function
+RNN = True #Use recurrent layers
 
 #DLL(DLL[i] - ref_particle) from particle_source data e.g. DLL(K-pi) from kaon data file
 DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 
-ref_particle = 'pi'
-particle_source = 'KAON'
+ref_particle = 'pi' #Usually pi(on)
+particle_source = 'KAON' #'KAON' or 'PION'
 
 #Physics network will be conditioned on:
 
+#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                 'TrackRich2ExitY', 'TrackRich2ExitZ']
+#
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
 #                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
 #                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
@@ -95,21 +99,24 @@ particle_source = 'KAON'
 #                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
 #                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
 #                 'RICH2ConeNum']
-
-#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                 'TrackRich2ExitY', 'TrackRich2ExitZ']
-
-physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 
-                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 
-                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
-                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
+#
+#physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 
+#                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 
+#                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
+#                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
 
 #physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
 #                 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 
 #                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 
 #                 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum','RICH2ConeNum']
+#
+physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
+                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
+                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY',
+                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0',
+                 'RICH1ExitDist0', 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
+                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2',
+                 'RICH2ExitDist2', 'RICH1ConeNum', 'RICH2ConeNum']
 
 noise_dim = 100 # Dimension of random noise vector. Default = 100
 #gen_input_dim = 100
@@ -121,22 +128,22 @@ data_dim = DLLs_dim + phys_dim #Size of DLLs and physics combined (input to disc
 gen_input_row_dim  = noise_dim + phys_dim #Size of noise and physics combined (input to gen)
 
 #Internal layers of generator and discriminator
-gen_layers = 8 #Default 8
-discrim_layers = 8 #Default 8
+gen_layers = 5 #Default 8
+discrim_layers = 5 #Default 8
 
 #Number of nodes in input layers and hidden layers ('x_nodes')
-gen_input_nodes = 256
+gen_input_nodes = 256 #Default 256
 gen_nodes = 256 #Default 256
-discrim_input_nodes = 256
+discrim_input_nodes = 256 #Default 256
 discrim_nodes = 256 #Default 256
 
 #Discriminator output dimensions. Single scalar usually corresponding to prob the input was real or generated
-discrim_output_dim = 1
+discrim_output_dim = 1 #Default 1. No reason to change
 
 #If including recurrent layers and choose how to sort data. If sort by 'None' will still be sorted by Event/Run number
 #sort_var = 'RICH1EntryDist0'
-#sort_var = 'None'
-sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] #Still group by events, but also sort by busy-ness
+sort_var = None
+#sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] #Still group by events, but also sort by busy-ness
 
 #If running recurrent layers, must change input dimensions accordingly, define sequence lengths etc.
 if RNN:
@@ -492,8 +499,8 @@ def build_generator(optimizer, loss_func):
         #return_sequences = True to connect two RNN layers. Would need to flatten after CuDNNLSTM if no Bidirectional layer
         layer = CuDNNLSTM(gen_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True)(gen_input)
 #        layer = CuDNNLSTM(gen_input_nodes, return_sequences=True)(layer)
-#        layer = Bidirectional(CuDNNLSTM(gen_input_nodes))(layer)
-        layer = Flatten()(layer)
+        layer = Bidirectional(CuDNNLSTM(gen_input_nodes))(layer)
+#        layer = Flatten()(layer)
     else:
         layer = Dense(gen_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02))(gen_input)
         layer = LeakyReLU(0.2)(layer)
@@ -540,8 +547,8 @@ def build_discriminator(optimizer, loss_func):
         #return_sequences to connext two RNN layers. Would need to flatten after CuDNNLSTM if no Bidirectional layer
         layer = CuDNNLSTM(discrim_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True)(discrim_input)
 #        layer = CuDNNLSTM(gen_input_nodes, return_sequences=True)(layer)
-#        layer = Bidirectional(CuDNNLSTM(discrim_input_nodes))(layer)
-        layer = Flatten()(layer)
+        layer = Bidirectional(CuDNNLSTM(discrim_input_nodes))(layer)
+#        layer = Flatten()(layer)
 
     else:
         layer = Dense(discrim_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02))(discrim_input)
@@ -737,7 +744,7 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
 
 
 #Overall network training function. Imports data, split into batches to train, and train networks
-#Inputs: Number of epochs to train over, size of batches to train at a time
+#Inputs: Number of epochs to train over, size of batches to train at a tfime
 #Returns: No values. Calls functions to generate and plot examples periodically. Generator is also saved periodically, and loss functions are plotted and saved
 def train(epochs=20, batch_size=128):
 
