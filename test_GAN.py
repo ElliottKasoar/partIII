@@ -19,6 +19,8 @@ import math
 from matplotlib.ticker import AutoMinorLocator
 import time
 import os
+from matplotlib import gridspec
+
 
 #Originally: set13.1 generator - works reasonably well for efficiency plot and DLL correlations to each other (both generated)
 #set15 for PION
@@ -292,26 +294,65 @@ print("Loading generators...")
 ##set_text += "av"
 ##set_text += "alt"
 
-#gen_av = False
-#concat = True
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set88/half_trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set88/penult_half_trained_gan.h5')
+#set_text += "set88"
 #
+##generator_k = load_model('../../GAN_data/GAN_7DLL/set88/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set88/penult_trained_gan.h5')
+#set_text += "set88.1"
 #
-#DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+##unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set88/unused_data_mask.csv'
+#set_text += "av"
+##set_text += "alt"
+
+generator_k = load_model('../../GAN_data/GAN_7DLL/set113/half_trained_gan.h5')
+generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set113/penult_half_trained_gan.h5')
+set_text += "set113"
+
+#generator_k = load_model('../../GAN_data/GAN_7DLL/set113/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set113/penult_trained_gan.h5')
+#set_text += "set113.1"
+
+unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set113/unused_data_mask.csv'
+set_text += "av"
+#set_text += "alt"
+alt_model_k = True
+
+
+generator_p = load_model('../../GAN_data/GAN_7DLL/set98/half_trained_gan.h5')
+generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set98/penult_half_trained_gan.h5')
+set_text += "set98"
+
+#generator_p = load_model('../../GAN_data/GAN_7DLL/set98/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set98/penult_trained_gan.h5')
+#set_text += "set98.1"
 #
-#input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                       'TrackRich2ExitY', 'TrackRich2ExitZ']
-#
+unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set98/unused_data_mask.csv'
+set_text += "av"
+#set_text += "alt"
+
+gen_av = True
+concat = True
+unused_mask_k = True
+unused_mask_p = True
+
+DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+
+input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+
 ##physical_vars = input_physical_vars
 #
-#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-#                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
-#                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-#                 'RICH2ConeNum']
+physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
+                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+                 'RICH2ConeNum']
 
 ###############################################################################
 
@@ -473,14 +514,14 @@ print("Loading generators...")
 
 #RNN. Noise=250
 
-#Choose GPU to use
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
-
-RNN=True
-seq_length = 4 #Rows, default 32 (//4)
-batch_size = 128
-apparent_batch_size = batch_size - seq_length + 1
-sort_var = 'RICH1EntryDist0'
+##Choose GPU to use
+#os.environ["CUDA_VISIBLE_DEVICES"]="1"
+#
+#RNN=True
+#seq_length = 4 #Rows, default 32 (//4)
+#batch_size = 128
+#apparent_batch_size = batch_size - seq_length + 1
+#sort_var = 'RICH1EntryDist0'
 #
 #generator_k = load_model('../../GAN_data/set90/trained_gan.h5')
 ##generator_k_2 = load_model('../../GAN_data/set90/penult_trained_gan.h5')
@@ -497,44 +538,44 @@ sort_var = 'RICH1EntryDist0'
 ##set_text += "av"
 ###set_text += "alt"
 
-generator_k = load_model('../../GAN_data/set96/trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/set96/penult_trained_gan.h5')
-unused_mask_loc_k = '../../GAN_data/set96/unused_data_mask.csv'
-set_text += "set96"
-#set_text += "av"
-##set_text += "alt"
-
-
-generator_p = load_model('../../GAN_data/set97/trained_gan.h5')
-#generator_p_2 = load_model('../../GAN_data/set97/penult_trained_gan.h5')
-unused_mask_loc_p = '../../GAN_data/set97/unused_data_mask.csv'
-set_text += "set97"
-#set_text += "av"
-##set_text += "alt"
-
-
-unused_mask_k = True
-unused_mask_p = True
-gen_av = False
-concat = True
-
-
-input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                       'TrackRich2ExitY', 'TrackRich2ExitZ']
-
-#physical_vars = input_physical_vars
-
-DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
-
-physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
-                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-                 'RICH2ConeNum']
+#generator_k = load_model('../../GAN_data/set96/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_data/set96/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_data/set96/unused_data_mask.csv'
+#set_text += "set96"
+##set_text += "av"
+###set_text += "alt"
+#
+#
+#generator_p = load_model('../../GAN_data/set97/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_data/set97/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_data/set97/unused_data_mask.csv'
+#set_text += "set97"
+##set_text += "av"
+###set_text += "alt"
+#
+#
+#unused_mask_k = True
+#unused_mask_p = True
+#gen_av = False
+#concat = True
+#
+#
+#input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+#
+##physical_vars = input_physical_vars
+#
+#DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+#
+#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+#                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
+#                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+#                 'RICH2ConeNum']
 
 ###############################################################################
 
@@ -549,7 +590,7 @@ print("Generators loaded")
 #noise_dim = gen_input_dim - input_phys_dim
 
 #New dim stuff
-noise_dim = 250 #Dimension of random noise vector.
+noise_dim = 100 #Dimension of random noise vector.
 input_phys_dim = len(input_physical_vars)
 phys_dim = len(physical_vars)
 DLLs_dim = len(DLLs)
@@ -647,7 +688,9 @@ def create_dataset(dataset, look_back=1):
     return np.array(dataX), np.array(dataY)
 
 
-#Change DLLs e.g. from K-pi to p-K
+#Change DLLs e.g. from (K-pi) and (p-pi) to p-K
+#Input: Two DLL arrays w.r.t. pi, to be changed s.t. the new DLL is w.r.t. the first particle in each DLL
+#Returns: New DLL array e.g. DLL(p-K)
 def change_DLL(DLL1, DLL2):
     
     if(not np.array_equal(DLL1, DLL2)):
@@ -658,38 +701,42 @@ def change_DLL(DLL1, DLL2):
     
     return DLL3
 
-def norm_info(particle_source):
 
+#Import information needed to normalise all data to between -1 and 1
+#Input: particle source i.e. either KAON or PION so read in respective csv file with vales
+#Returns: div_num and shift needed to normalise all relevant data (DLLs and input physics)
+def import_norm_info(particle_source):
+
+    #Read in csv datafile
     data_norm = np.array(pd.read_csv('../../data/' + particle_source + '_norm.csv'))
-#    KAON_norm = np.array(pd.read_csv('KAON_norm.csv'))
     
-    #shift = [0,x], div_num = [1,x], x starts at 1
+    #shift = [0,x], div_num = [1,x], where x starts at 1 for meaningful data
 
     #Order of variables:
-    columns = ['RunNumber', 'EventNumber', 'MCPDGCode', 'NumPVs', 'NumLongTracks',
-           'NumRich1Hits', 'NumRich2Hits', 'TrackP', 'TrackPt', 'TrackChi2PerDof',
-           'TrackNumDof', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ',
-           'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
-           'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ',
-           'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ',
-           'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RichDLLe',
-           'RichDLLmu', 'RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt',
-           'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-           'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
-           'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2',
-           'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-           'RICH2ConeNum']
+    columns = ['RunNumber', 'EventNumber', 'MCPDGCode', 'NumPVs', 'NumLongTracks', 'NumRich1Hits', 
+               'NumRich2Hits', 'TrackP', 'TrackPt', 'TrackChi2PerDof', 'TrackNumDof', 'TrackVertexX', 
+               'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
+               'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
+               'TrackRich2EntryZ','TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RichDLLe', 
+               'RichDLLmu', 'RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt', 'RICH1EntryDist0', 'RICH1ExitDist0', 
+               'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 
+               'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 
+               'RICH1ConeNum', 'RICH2ConeNum']
     
+    #Create arrays for shift and div_num to be stored in. Only need to save DLLs and physics input values (data_dim)
     shift = np.zeros(data_dim)
     div_num = np.zeros(data_dim)
     
+    #Loop over all DLLs and input physics
     for i in range(data_dim):
+        #First values correspond to DLLs
         if i < DLLs_dim:
             for j in range(len(columns)):
                 if columns[j] == 'RichDLL' + DLLs[i]:
                     shift[i] = data_norm[0,j+1]
                     div_num[i] = data_norm[1,j+1]
                     break
+        #Next set correspond to physics inputs
         else:
             for k in range(len(columns)):
                 if columns[k] == physical_vars[i-DLLs_dim]:
@@ -700,32 +747,27 @@ def norm_info(particle_source):
     return shift, div_num
 
 
-#Normalise data via dividing centre on zero and divide by max s.t. range=[-1,1]
+#Normalise relevant data via dividing centre on zero and divide by max s.t. range=[-1,1]
+#Input: Data array to be normalised (x) and particle source, so know which set of normalisation values to use
+#Returns: Normalised data array (x) and shift/div_num used to do so (so can unnormalise later)
 def norm(x, particle_source):
+
+    #Import normalistion arrays (shift and div_number) from csv file        
+    shift, div_num, = import_norm_info(particle_source)
     
-#    shift = np.zeros(x.shape[1])
-#    div_num = np.zeros(x.shape[1])
-    
-    shift, div_num, = norm_info(particle_source)
-    
+    #For each column in input data array, normalise by shifting and dividing
     for i in range(x.shape[1]):
         
-#        x_max = np.max(x[:,i])
-#        x_min = np.min(x[:,i])
-    
-#        shift[i] = (x_max + x_min)/2
         x[:,i] = np.subtract(x[:,i], shift[i])
-        
-#        if x_max == x_min:
-#            div_num[i] = 1
-#        else:
-#                div_num[i] = x_max - shift[i]
         x[:,i] = np.divide(x[:,i], div_num[i])
     
     return x, shift, div_num
 
 
-#Get training/test data and normalise
+
+#Get all relevant test data
+#Inputs: List of DLLs of interest, list of physical vars of interest, particle source for data e.g. KAONS
+#Returns: test data, as well as values used to normalise the data
 def get_x_data(DLLs, ref_particle, physical_vars, particle_source, examples, unused_mask, unused_mask_loc):
     
     #Get all data from particle source
@@ -1379,44 +1421,50 @@ def plot_hist_and_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_da
     hist_pion_2, _ = np.histogram(DLL_data_2_real, bins=bin_no_ratio, range=x_range, density=True)
     ratio_pion = np.divide(hist_pion_2, hist_pion_1)
 
-
     # Two subplots, the axes array is 1-d
-    fig, axarr = plt.subplots(2, sharex=True, figsize=(4, 8))
+    fig, axarr = plt.subplots(2, sharex=True, figsize=(5, 5))
 
+    gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1], hspace=0.4)
+    
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
 
     if y_range_hist is not None:
-        axarr[0].set_ylim(bottom=0, top=y_range_hist)
+        ax1.set_ylim(bottom=0, top=y_range_hist)
 
     if x_range is not None:
-        axarr[0].set_xlim(x_range)
+        ax1.set_xlim(x_range)
+        
+    ax1.set_ylabel("Density of events", fontsize=10.5)
+    ax1.set_xlabel(DLL_text, fontsize=10.5)
 
-    axarr[0].set_ylabel("Density of events")
-
-    axarr[0].hist(DLL_data_1_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'r', linewidth=1, label=hist_labels[0])
-    axarr[0].hist(DLL_data_1_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.3, color = 'r', linewidth=0.5, label=hist_labels[1])
-    axarr[0].hist(DLL_data_2_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'b', linewidth=1, label=hist_labels[2])
-    axarr[0].hist(DLL_data_2_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.3, color='b', linewidth=0.5, label=hist_labels[3])
-
-    axarr[0].legend(loc=legend_loc)
-    
-    axarr[0].set_aspect(aspect=1000)
-
-    
     if y_range_ratio is not None:
-        axarr[1].set_ylim(bottom=0, top=y_range_ratio)
+        ax2.set_ylim(bottom=0, top=y_range_ratio)
 
     if x_range is not None:
-        axarr[1].set_xlim(x_range)
+        ax2.set_xlim(x_range)
 
-#    axarr[0].set_xlabel(DLL_text)
-    axarr[1].set_ylabel("Ratio of densities")
+#    ax2.set_xlabel(DLL_text)
+    ax2.set_ylabel("Ratio of densities", fontsize=10.5)
+#    ax2.legend()
+#    ax2.set_aspect(aspect=10)
+
+    ax1.hist(DLL_data_1_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'r', linewidth=0.9, label=hist_labels[0])
+    ax1.hist(DLL_data_1_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.35, color = 'r', linewidth=0.5, label=hist_labels[1])
+    ax1.hist(DLL_data_2_gen, bins=bin_no_hist, range=x_range, density=True, histtype='step', color = 'b', linewidth=0.9, label=hist_labels[2])
+    ax1.hist(DLL_data_2_real, bins=bin_no_hist, range=x_range, density=True, histtype='bar', alpha=0.35, color='b', linewidth=0.5, label=hist_labels[3])
+    ax1.get_yaxis().set_label_coords(-0.11,0.5)
+
+    ax1.legend(loc=legend_loc, fontsize=9)
+
     
     DLL = np.linspace(x_range[0],x_range[1],num=bin_no_ratio)
-    axarr[1].plot(DLL, ratio_kaon, label=ratios_labels[0], color='r')
-    axarr[1].plot(DLL, ratio_pion, label=ratios_labels[1], color='b')
-#    axarr[0].legend()
-    axarr[1].set_aspect(aspect=10)
-    axarr[1].set_xlabel(DLL_text)
+    ax2.plot(DLL, ratio_kaon, label=ratios_labels[0], color='r', alpha=0.75)
+    ax2.plot(DLL, ratio_pion, label=ratios_labels[1], color='b', alpha=0.75)
+
+    ax2.xaxis.tick_top()
+    ax2.set_xticklabels([])
+    ax2.get_yaxis().set_label_coords(-0.11,0.5)
 
     fig.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
@@ -1761,8 +1809,9 @@ x_range = [0.1, 1]
 id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'gen_DLL', True)
 id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'real_DLL', True)
 
-
-######################################################################################################################################################################################
+# =============================================================================
+# Plot final indvidual histograms for generated DLLs
+# =============================================================================
 
 #Plot histograms of DLLs from generated KAON data
 plot_DLL_hist(generated_vars_k[:,0], DLLs[0], ref_particle, particle_source_1, 500, [-40, 20], 0.3)
@@ -1810,11 +1859,13 @@ plot_DLL_hist(generated_vars_p[:,5], DLLs[5], ref_particle, particle_source_2, 6
 #
 #print("Overlaps:", hist_overlap_1, hist_overlap_2)
 
-########################################################
+# =============================================================================
+# Histograms comparing real/generated data, and ratios
+# =============================================================================
 
 #e:
-plot_four_DLL_hist(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, [-80, 20], 0.16)
-plot_hist_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_1, 100, [-80, 20], 2)
+#plot_four_DLL_hist(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, [-80, 20], 0.16)
+#plot_hist_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_1, 100, [-80, 20], 2)
 hist_overlap_1 = histogram_intersection(generated_vars_k[:,0], x_test_1[:,0], 750, [-80, 20])
 hist_overlap_2 = histogram_intersection(generated_vars_p[:,0], x_test_2[:,0], 750, [-80, 20])
 
@@ -1825,8 +1876,8 @@ print("Pion:", hist_overlap_2)
 ########################################################
 
 #mu:
-plot_four_DLL_hist(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, [-50, 20], 0.3)
-plot_hist_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_1, 100, [-50, 20], 2)
+#plot_four_DLL_hist(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, [-50, 20], 0.3)
+#plot_hist_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_1, 100, [-50, 20], 2)
 hist_overlap_3 = histogram_intersection(generated_vars_k[:,1], x_test_1[:,1], 750, [-50, 20])
 hist_overlap_4 = histogram_intersection(generated_vars_p[:,1], x_test_2[:,1], 750, [-50, 20])
 
@@ -1834,13 +1885,11 @@ print("Overlaps for DLL(" + DLLs[1] + "-" + ref_particle + "):")
 print("Kaon:", hist_overlap_3)
 print("Pion:", hist_overlap_4)
 
-#plot_hist_and_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 80], 0.09, 2)
-
 ########################################################
 
 #k:
-plot_four_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, [-60, 80], 0.09)
-plot_hist_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-60, 80], 2)
+#plot_four_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, [-60, 80], 0.1)
+#plot_hist_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-60, 80], 2)
 hist_overlap_5 = histogram_intersection(generated_vars_k[:,2], x_test_1[:,2], 750, [-60, 80])
 hist_overlap_6 = histogram_intersection(generated_vars_p[:,2], x_test_2[:,2], 750, [-60, 80])
 
@@ -1851,8 +1900,8 @@ print("Pion:", hist_overlap_6)
 ########################################################
 
 #p:
-plot_four_DLL_hist(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
-plot_hist_ratios(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_1, 100, [-60, 60], 2)
+#plot_four_DLL_hist(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+#plot_hist_ratios(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_7 = histogram_intersection(generated_vars_k[:,3], x_test_1[:,3], 750, [-60, 60])
 hist_overlap_8 = histogram_intersection(generated_vars_p[:,3], x_test_2[:,3], 750, [-60, 60])
 
@@ -1863,8 +1912,8 @@ print("Pion:", hist_overlap_8)
 ########################################################
 
 #d:
-plot_four_DLL_hist(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
-plot_hist_ratios(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_1, 100, [-60, 60], 2)
+#plot_four_DLL_hist(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+#plot_hist_ratios(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_9 = histogram_intersection(generated_vars_k[:,4], x_test_1[:,4], 750, [-60, 60])
 hist_overlap_10 = histogram_intersection(generated_vars_p[:,4], x_test_2[:,4], 750, [-60, 60])
 
@@ -1875,8 +1924,8 @@ print("Pion:", hist_overlap_10)
 ########################################################
 
 #bt:
-plot_four_DLL_hist(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
-plot_hist_ratios(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_1, 100, [-60, 60], 2)
+#plot_four_DLL_hist(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
+#plot_hist_ratios(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_11 = histogram_intersection(generated_vars_k[:,5], x_test_1[:,5], 750, [-60, 60])
 hist_overlap_12 = histogram_intersection(generated_vars_p[:,5], x_test_2[:,5], 750, [-60, 60])
 
@@ -1886,13 +1935,29 @@ print("Pion:", hist_overlap_12)
 
 ########################################################
 
+#Combined ratio and histograms:
+
+plot_hist_and_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, 100, [-80, 20], 0.16, 2)
+plot_hist_and_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, 100, [-50, 20], 0.3, 2)
+plot_hist_and_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 80], 0.1, 2)
+plot_hist_and_ratios(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 60], 0.1, 2)
+plot_hist_and_ratios(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 60], 0.1, 2)
+plot_hist_and_ratios(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_2, 'upper left', 750, 100, [-60, 60], 0.1, 2)
+
+########################################################
+
 print("Data plotted")
 
-#Measure total run time for script
+#Save overlaps as text
+hist_overlaps = [hist_overlap_1, hist_overlap_2, hist_overlap_3, hist_overlap_4, hist_overlap_5, hist_overlap_6, hist_overlap_7, hist_overlap_8, hist_overlap_9, hist_overlap_10, hist_overlap_11, hist_overlap_12] 
+with open('overlaps_' + set_text + '.txt', 'w') as f:
+    print(hist_overlaps, file=f)
+
+
+#Measure total run time for script and save
 t_final = time.time()
 runtime = t_final - t_init
 print("Total run time = ", runtime)
 
-#Save runtime as text
-with open('GAN1_runtime.txt', 'w') as f:
+with open('runtime_' + set_text + '.txt', 'w') as f:
     print(runtime, file=f)
