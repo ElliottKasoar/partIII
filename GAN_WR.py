@@ -6,16 +6,10 @@ Created on Wed May  1 02:49:59 2019
 @author: Elliott
 """
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr  8 17:28:09 2019
-
-@author: Elliott
-"""
-
-#Building on GAN_corr_RNN.py. Rewritten to allow implementation of WGAN and gradient penalty
-#Note: cannot calculate gradient of recurrent layers currently so cannot implement both simultaneously 
+#Building on GAN_corr_RNN.py. Rewritten to allow implementation of WGAN and 
+#gradient penalty
+#Note: cannot calculate gradient of recurrent layers currently so cannot 
+#implement both simultaneously 
 
 import os
 import numpy as np
@@ -24,43 +18,36 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import time
 
-from keras.layers import Input, BatchNormalization, concatenate, Flatten
-from keras.models import Model, Sequential
+from keras.layers import Input, BatchNormalization, concatenate
+from keras.models import Model
 from keras.layers.core import Dense, Dropout, Reshape
 from keras.layers import CuDNNLSTM, Bidirectional
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 from keras import initializers
 
-from keras.utils import multi_gpu_model
 import keras.backend as K
 import tensorflow as tf
 from keras.layers.merge import _Merge
 from functools import partial
 
-#from matplotlib.ticker import AutoMinorLocator
-#from scipy.stats import gaussian_kde
-#import math
-#from sklearn.preprocessing import QuantileTransformer
 
 #Time total run from here to end
 t_init = time.time()
 
-#Input parameters
-##############################################################################################################
+# =============================================================================
+# Input parameters
+# =============================================================================
 
-os.environ["CUDA_VISIBLE_DEVICES"]="2" #Choose GPU to use
+os.environ["CUDA_VISIBLE_DEVICES"]="1" #Choose GPU to use e.g. "0", "1" or "2"
 
 os.environ["KERAS_BACKEND"] = "tensorflow" #Using tensorflow backend
 
-plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data?
-
-#Some tunable variables/parameters...
-#Not really passed properly
+plt.rcParams['agg.path.chunksize'] = 10000 #Needed for plotting lots of data
 
 #Training variables
 batch_size = 128 #Default = 128
-epochs = 250 #Default = 100
+epochs = 200 #Default = 100
 
 #Parameters for Adam optimiser
 learning_rate = 0.0001 #Default = 0.0001 (Adam default: learning_rate = 0.001)
@@ -68,18 +55,19 @@ beta_1=0.5 #Default = 0.5 (Adam default: beta_1 = 0.9)
 beta_2=0.9 #Default = 0.9 (Adam default: beta_2 = 0.999)
 
 #Define how much of the total data to use, and how much of that to train with
-frac = 0.25 #Default = 0.1
+frac = 0.1 #Default = 0.1
 train_frac = 0.7 #Default = 0.7
 
 #The training ratio is the number of discriminator updates per generator update
-training_ratio = 2 #Default 5 as per the paper
+training_ratio = 1 #Default 5 as per the paper
 grad_penalty_weight = 10  #Default 10 as per the paper
 
 grad_loss = False #Use gradient penalty loss
 WGAN = False #Use Wasserstein loss function
 RNN = True #Use recurrent layers
 
-#DLL(DLL[i] - ref_particle) from particle_source data e.g. DLL(K-pi) from kaon data file
+#DLL(DLL[i] - ref_particle) from particle_source data 
+#e.g. DLL(K-pi) from kaon data file
 DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 
 ref_particle = 'pi' #Usually pi(on)
@@ -87,78 +75,63 @@ particle_source = 'KAON' #'KAON' or 'PION'
 
 #Physics network will be conditioned on:
 
-#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                 'TrackRich2ExitY', 'TrackRich2ExitZ']
-#
-#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-#                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-#                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
-#                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-#                 'RICH2ConeNum']
-#
-#physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 
-#                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 
-#                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
-#                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
-
-#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'RICH1EntryDist0', 'RICH1ExitDist0', 
-#                 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 
-#                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 
-#                 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum','RICH2ConeNum']
-#
-physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
-                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
-                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY',
-                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0',
-                 'RICH1ExitDist0', 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
-                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2',
-                 'RICH2ExitDist2', 'RICH1ConeNum', 'RICH2ConeNum']
+physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 
+                 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 
+                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 
+                 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 
+                 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
 
 noise_dim = 100 # Dimension of random noise vector. Default = 100
-#gen_input_dim = 100
-#noise_dim = gen_input_dim - phys_dim
 
 phys_dim = len(physical_vars) #Size of phyiscs input
 DLLs_dim = len(DLLs) #Number of DLLs
-data_dim = DLLs_dim + phys_dim #Size of DLLs and physics combined (input to discim)
-gen_input_row_dim  = noise_dim + phys_dim #Size of noise and physics combined (input to gen)
+
+#Size of DLLs and physics combined (input to discim)
+data_dim = DLLs_dim + phys_dim 
+
+#Size of noise and physics combined (input to gen)
+gen_input_row_dim  = noise_dim + phys_dim 
 
 #Internal layers of generator and discriminator
-gen_layers = 5 #Default 8
-discrim_layers = 5 #Default 8
+gen_layers = 6 #Default = 8
+discrim_layers = 6 #Default = 8
 
 #Number of nodes in input layers and hidden layers ('x_nodes')
-gen_input_nodes = 256 #Default 256
-gen_nodes = 256 #Default 256
-discrim_input_nodes = 256 #Default 256
-discrim_nodes = 256 #Default 256
+gen_input_nodes = 256 #Default = 256
+gen_nodes = 256 #Default = 256
+discrim_input_nodes = 256 #Default = 256
+discrim_nodes = 256 #Default = 256
 
-#Discriminator output dimensions. Single scalar usually corresponding to prob the input was real or generated
-discrim_output_dim = 1 #Default 1. No reason to change
+#Discriminator output dimensions, usually single scalar corresponding to prob 
+#the input was real or generated
+discrim_output_dim = 1 #Default = 1
 
-#If including recurrent layers and choose how to sort data. If sort by 'None' will still be sorted by Event/Run number
-#sort_var = 'RICH1EntryDist0'
-sort_var = None
-#sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] #Still group by events, but also sort by busy-ness
+#If including recurrent layers and choose how to sort data. If sort by 'None' 
+#will still be sorted by Event/Run number
 
-#If running recurrent layers, must change input dimensions accordingly, define sequence lengths etc.
+#Still group by events, but also sort by busy-ness
+sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] 
+
+#If running recurrent layers, must change input dimensions accordingly, 
+#define sequence lengths etc.
 if RNN:
 
-    gen_layers -= 1 #Currently have two LSTM layers before loop, rather than one input layer if not gen_RNN
-    discrim_layers -= 1 #Currently have two LSTM layers before loop, rather than one input layer if not gen_RNN
+    gen_layers -= 1 #RNN increases layers before loop by one so subtract this 
+    discrim_layers -= 1 #Same for discriminator
 
     seq_length = batch_size // 32 #Rows, default 32 (//4)
-    apparent_batch_size = batch_size - seq_length + 1 #Making sequences out of batch_size results in apparent_batch_size rows i.e. treat as new batch size
+    
+    #Making sequences out of batch_size results in [apparent_batch_size] rows 
+    #i.e. treat as new batch size:
+    apparent_batch_size = batch_size - seq_length + 1 
 
     gen_output_dim = (seq_length, DLLs_dim) #Output N rows of DLL values
  
-    discrim_input_dim = (seq_length, data_dim) #Input DLLs and physics as sequences
+    #Input DLLs and physics as sequences:
+    discrim_input_dim = (seq_length, data_dim) 
     discrim_noise_input_dim = (seq_length, noise_dim)
-    discrim_phys_input_dim = (seq_length, phys_dim) #Physics input sequences
+    discrim_phys_input_dim = (seq_length, phys_dim)
     discrim_DLL_input_dim = gen_output_dim
     
     gen_noise_input_dim = (seq_length, noise_dim) #Noise input to combined GAN
@@ -178,6 +151,8 @@ else:
     gen_noise_input_dim = (noise_dim,) #Noise input to generator
     gen_phys_input_dim = (phys_dim,) #Physics input to generator
 
+
+#WGAN needs linear discriminator activation rather than sigmoid
 if WGAN:
     discrim_activation = 'linear'
 else:
@@ -185,32 +160,33 @@ else:
 
 plot_freq = 20 #epochs//10 #Plot data for after this number of epochs
 
-#So reproducable
-np.random.seed(10)
-
 if RNN and grad_loss:
-    print("Error: Cannot use RNN and gradient penalty together as gradients cannoy be calculated")
+    print("Error: Cannot use RNN and gradient penalty together as gradients \
+          cannot be calculated")
 
-##############################################################################################################
+###############################################################################
 
 #Import data of a single variable (e.g. momentum) via pandas from data files
-#Inputs: variable type and particle source, corresponding to the single variable to be imported from the source datafile
+#Inputs: variable type and particle source, corresponding to the single 
+#        variable to be imported from the source datafile
 #Returns: pandas column containing the single variable data only
 def import_single_var(var_type, particle_source):
     
-    #Define data file as KAONs or PIONs. 'mod' datafile has newly calculated variables
+    #Define data file as KAONs/PIONs. 'mod' datafile has newly calc. vars
     if(particle_source == 'KAON'):
 
-        datafile_kaon = '../../data/mod-PID-train-data-KAONS.hdf' #Define datafile location
-        data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')  #Read datafile
-        data = data_kaon.loc[:, var_type] #Select variable data of interest
+        #Define datafile location, read file and select variable of interest
+        datafile_kaon = '../../data/mod-PID-train-data-KAONS.hdf'
+        data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')
+        data = data_kaon.loc[:, var_type]
 
         
     elif(particle_source == 'PION'):
     
-        datafile_pion = '../../data/mod-PID-train-data-PIONS.hdf'  #Define datafile location
-        data_pion = pd.read_hdf(datafile_pion, 'PIONS') #Read datafile
-        data = data_pion.loc[:, var_type] #Select variable data of interest
+        #Define datafile location, read file and select variable of interest
+        datafile_pion = '../../data/mod-PID-train-data-PIONS.hdf'
+        data_pion = pd.read_hdf(datafile_pion, 'PIONS')
+        data = data_pion.loc[:, var_type]
 
     else:
         print("Please select either kaon or pion as particle source")
@@ -219,7 +195,8 @@ def import_single_var(var_type, particle_source):
 
 
 #Import all data via pandas from data files
-#Inputs: Particle source e.g. KAONS corresponding to the datafile from which data will be imported
+#Inputs: Particle source e.g. KAONS corresponding to the datafile from which 
+#        data will be imported
 #Returns: pandas structure containing all variables from the source
 def import_all_var(particle_source):
     
@@ -237,7 +214,8 @@ def import_all_var(particle_source):
 
 
 #Change DLLs e.g. from (K-pi) and (p-pi) to p-K
-#Input: Two DLL arrays w.r.t. pi, to be changed s.t. the new DLL is w.r.t. the first particle in each DLL
+#Input: Two DLL arrays w.r.t. pi, to be changed s.t. the new DLL is w.r.t. 
+#       the first particle in each DLL
 #Returns: New DLL array e.g. DLL(p-K)
 def change_DLL(DLL1, DLL2):
     
@@ -251,27 +229,36 @@ def change_DLL(DLL1, DLL2):
 
 
 #Import information needed to normalise all data to between -1 and 1
-#Input: particle source i.e. either KAON or PION so read in respective csv file with vales
-#Returns: div_num and shift needed to normalise all relevant data (DLLs and input physics)
+#Input: particle source i.e. either KAON or PION so read in respective csv 
+#       file with vales
+#Returns: div_num and shift needed to normalise all relevant data (DLLs and 
+#         input physics)
 def import_norm_info(particle_source):
 
     #Read in csv datafile
-    data_norm = np.array(pd.read_csv('../../data/' + particle_source + '_norm.csv'))
+    data_norm = np.array(pd.read_csv('../../data/' + particle_source + \
+                                     '_norm.csv'))
     
     #shift = [0,x], div_num = [1,x], where x starts at 1 for meaningful data
 
     #Order of variables:
-    columns = ['RunNumber', 'EventNumber', 'MCPDGCode', 'NumPVs', 'NumLongTracks', 'NumRich1Hits', 
-               'NumRich2Hits', 'TrackP', 'TrackPt', 'TrackChi2PerDof', 'TrackNumDof', 'TrackVertexX', 
-               'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
-               'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 
-               'TrackRich2EntryZ','TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RichDLLe', 
-               'RichDLLmu', 'RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt', 'RICH1EntryDist0', 'RICH1ExitDist0', 
-               'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 
-               'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 
+    columns = ['RunNumber', 'EventNumber', 'MCPDGCode', 'NumPVs',
+               'NumLongTracks', 'NumRich1Hits',  'NumRich2Hits', 'TrackP',
+               'TrackPt', 'TrackChi2PerDof', 'TrackNumDof', 'TrackVertexX',
+               'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 
+               'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 
+               'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX',
+               'TrackRich2EntryY',  'TrackRich2EntryZ','TrackRich2ExitX', 
+               'TrackRich2ExitY', 'TrackRich2ExitZ', 'RichDLLe', 'RichDLLmu',
+               'RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt',
+               'RICH1EntryDist0', 'RICH1ExitDist0',  'RICH2EntryDist0',
+               'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
+               'RICH2EntryDist1',  'RICH2ExitDist1', 'RICH1EntryDist2',
+               'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2',
                'RICH1ConeNum', 'RICH2ConeNum']
     
-    #Create arrays for shift and div_num to be stored in. Only need to save DLLs and physics input values (data_dim)
+    #Create arrays for shift and div_num to be stored in. Only need to save 
+    #DLLs and physics input values (data_dim)
     shift = np.zeros(data_dim)
     div_num = np.zeros(data_dim)
     
@@ -295,9 +282,11 @@ def import_norm_info(particle_source):
     return shift, div_num
 
 
-#Normalise relevant data via dividing centre on zero and divide by max s.t. range=[-1,1]
-#Input: Data array to be normalised (x) and particle source, so know which set of normalisation values to use
-#Returns: Normalised data array (x) and shift/div_num used to do so (so can unnormalise later)
+#Normalise data via dividing centre on zero and divide by max s.t. range=[-1,1]
+#Input: Data array to be normalised (x) and particle source, so know which 
+#       set of normalisation values to use
+#Returns: Normalised data array (x) and shift/div_num used to do so (so can 
+#         unnormalise later)
 def norm(x, particle_source):
 
     #Import normalistion arrays (shift and div_number) from csv file        
@@ -313,8 +302,10 @@ def norm(x, particle_source):
 
 
 #Create sequences of data
-#Inputs: data array to be made into sequences, and length of sequences (look_back)
-#Returns: arrays of sequenced data and 
+#Inputs: data array to be made into sequences, length of sequences (=look_back)
+#Returns: arrays of sequenced data, array containing the final row of each seq
+#Note: Number of sequences = original number of rows - look_back + 1 
+#      e.g. input 10 rows, lookback = 4 -> 7 output
 def create_dataset(data, look_back=1):
   
     dataX, dataY = [], []
@@ -322,7 +313,8 @@ def create_dataset(data, look_back=1):
     #Loop from 0 to len(data)-look_back+1
     for i in range(len(data)-look_back+1):
     
-        a = data[i:(i+look_back), :] #Extract [look_back] data rows starting from the ith row
+        #Extract [look_back] data rows starting from the ith row and final rows
+        a = data[i:(i+look_back), :] 
         dataX.append(a)
         dataY.append(data[i + look_back - 1, :])
     
@@ -330,21 +322,24 @@ def create_dataset(data, look_back=1):
 
 
 #Get all relevant training (and test) data
-#Inputs: List of DLLs of interest, list of physical vars of interest, particle source for data e.g. KAONS
+#Inputs: List of DLLs of interest, list of physical vars of interest, particle 
+#        source for data e.g. KAONS
 #Returns: training and test data, as well as values used to normalise the data
 def get_x_data(DLLs, physical_vars, particle_source):
     
     #Inport all data from particle source datafile
     all_data = import_all_var(particle_source)
     
-    #If recurrent layers, can sort by a variable e.g. TrackP. If 'None' will still be grouped by event/run number
+    #If recurrent layers, can sort by a variable e.g. TrackP. 
+    #If 'None' will still be grouped by event/run number
     if RNN and sort_var is not None:
         all_data = all_data.sort_values(by=sort_var,ascending=True)
         
     #Number of data rows (10,000,000 usually)
     data_length = all_data.shape[0]
     
-    #Create array for all data to be sorted (size: number of rows x number of DLLs and physics inputs)      
+    #Create array for all data to be sorted 
+    #(size: number of rows x number of DLLs and physics inputs)      
     x_data_dim = (data_length, data_dim) 
     x_data = np.zeros((x_data_dim))
     
@@ -360,14 +355,16 @@ def get_x_data(DLLs, physical_vars, particle_source):
     #Use subset of data for training/testing
     tot_split = int(frac * data_length)
 
-    #Create and array with fraction of 1s and 0s randomly mixed and apply as boolean mask to use fraction of data only
+    #Create and array with fraction of 1s and 0s randomly mixed and apply as 
+    #boolean mask to use fraction of data only
     zero_arr =np.zeros(data_length - tot_split, dtype=bool)
     ones_arr = np.ones(tot_split, dtype=bool)
     frac_mask = np.concatenate((zero_arr,ones_arr))
     np.random.shuffle(frac_mask)
 
     #Apply mask to get fraction of data. 
-    #Could also shuffle here should not be necessary. Data selected randomly (but in order here), then batches take a random ordering of this later
+    #Could also shuffle here should not be necessary. Data selected randomly 
+    #(but in order here), then batches take a random ordering of this later
     x_data = x_data[frac_mask]
 
     #Normalise data by shifting and dividing s.t. lies between -1 and 1
@@ -376,7 +373,8 @@ def get_x_data(DLLs, physical_vars, particle_source):
     #Split into training/test data e.g. 70/30
     split = int(train_frac * tot_split)
 
-    #Create and array with fraction of 1s and 0s randomly mixed and apply as boolean mask for training/test split
+    #Create and array with fraction of 1s and 0s randomly mixed and apply as 
+    #boolean mask for training/test split
     zero_arr_2 =np.zeros(tot_split - split, dtype=bool)
     ones_arr_2 = np.ones(split, dtype=bool)
     train_mask = np.concatenate((zero_arr_2,ones_arr_2))
@@ -387,78 +385,84 @@ def get_x_data(DLLs, physical_vars, particle_source):
     x_train = x_data[train_mask]
     x_test = x_data[test_mask]
     
-    #Apply the train mask to the fraction mask, to give a new mask where 0 represents either not in the fraction, or if it was in the frac it was assigned as test data
+    #Apply the train mask to the fraction mask, to give a new mask where 0 
+    #represents either not in the fraction, or if it was in the frac it was 
+    #assigned as test data
     frac_mask[frac_mask==1] = train_mask
 
     #Take inverse of frac so can extract these 0s
     not_frac_mask = np.logical_not(frac_mask)
     
-    #Save mask info so when testing later, can use different data to training data
+    #Save mask info so when testing, can use different data to training data
     pd.DataFrame(not_frac_mask).to_csv('unused_data_mask.csv')
 
     return x_train, x_test, shift, div_num
 
 
-#Takes randomly-weighted average of two tensors - outputs a random point on the line between each pair of points
+#Takes randomly-weighted average of two tensors - outputs a random point on 
+#the line between each pair of points
 class RandomWeightedAverage(_Merge):
     
     def _merge_function(self, inputs):
-        
+
+        # Note: would be (batch_size, 1, 1, 1) for images
         if RNN:
-            weights = K.random_uniform((batch_size, 1, 1)) # (batch_size, 1, 1, 1) for images
+            weights = K.random_uniform((batch_size, 1, 1)) 
         else:
-            weights = K.random_uniform((batch_size, 1)) # (batch_size, 1, 1, 1) for images
+            weights = K.random_uniform((batch_size, 1)) 
         
         return (weights * inputs[0]) + ((1 - weights) * inputs[1])
 
 
 #Calculate the gradient penalty loss for a batch of "averaged" samples
 #Penalise the network if the grad norm moves away from 1
-#Random points on the lines between real and generated samples are chosen, and grad checked at these points
-#To eval grads, must run samples through the generator and evaluate loss, then get grad of the discrim w.r.t. the input averaged samples
-#Loss requires the original averaged samples as input, but Keras only supports passing y_true and y_pred to 
-#loss functions, so make a partial() of the function with averaged_samlpes argument, and use for training
-def gradient_penalty_loss(y_true, y_pred, averaged_samples, gradient_penalty_weight):
-#
-#    #First get the gradients:
-#    #  assuming: - that y_pred has dimensions (batch_size, 1)
-#    #            - averaged_samples has dimensions (batch_size, nbr_features)
-#    #Gradients afterwards has dimension (batch_size, nbr_features), basically a list of nbr_features-dimensional gradient vectors
-#        
-#    gradients = K.gradients(y_pred, averaged_samples)[0]
-#        
-#    #Compute the euclidean norm by squaring
-#    gradients_sqr = K.square(gradients)
-#    
-#    #Sum over the rows
-#    gradients_sqr_sum = K.sum(gradients_sqr, axis=np.arange(1, len(gradients_sqr.shape)))
-#    
-#    #Sqrt
-#    gradient_l2_norm = K.sqrt(gradients_sqr_sum)
-#    
-#    #Compute lambda * (1 - ||grad||)^2 still for each single sample
-#    gradient_penalty = gradient_penalty_weight * K.square(1 - gradient_l2_norm)
-#    
-#    #Return the mean as loss over all the batch samples
-#    return K.mean(gradient_penalty)
+#Random points on the lines between real and generated samples are chosen, 
+#and grad checked at these points
+#To eval grads, must run samples through the generator and evaluate loss, 
+#then get grad of the discrim w.r.t. the input averaged samples
+#Loss requires the original averaged samples as input, but Keras only supports
+# passing y_true and y_pred to 
+#loss functions, so make a partial() of the function with averaged_samlpes 
+#argument, and use for training
+def gradient_penalty_loss(y_true, y_pred, averaged_samples, 
+                          gradient_penalty_weight):
 
-    gradients = K.gradients(y_pred, averaged_samples) #Same as usual but removed [0] for some reason?
-    gradients = K.concatenate([K.flatten(tensor) for tensor in gradients]) #New? Equivalent to [0]?
-    gradient_l2_norm = K.sqrt(K.sum(K.square(gradients)))#Sqrt of sum of sqaures, as before but in one line
-    gradient_penalty = grad_penalty_weight * K.square(1 - gradient_l2_norm) #Same as usual
-
-    return gradient_penalty #No mean needed as only 1D?
+#    First get the gradients:
+#      assuming: - that y_pred has dimensions (batch_size, 1)
+#                - averaged_samples has dimensions (batch_size, nbr_features)
+#    Gradients afterwards has dimension (batch_size, nbr_features), basically 
+#    a list of nbr_features-dimensional gradient vectors
+        
+    gradients = K.gradients(y_pred, averaged_samples)[0]
+        
+    #Compute the euclidean norm by squaring
+    gradients_sqr = K.square(gradients)
+    
+    #Sum over the rows
+    gradients_sqr_sum = K.sum(gradients_sqr, 
+                              axis=np.arange(1, len(gradients_sqr.shape)))
+    
+    #Sqrt
+    gradient_l2_norm = K.sqrt(gradients_sqr_sum)
+    
+    #Compute lambda * (1 - ||grad||)^2 still for each single sample
+    gradient_penalty = gradient_penalty_weight * K.square(1 - gradient_l2_norm)
+    
+    #Return the mean as loss over all the batch samples
+    return K.mean(gradient_penalty)
 
 
 #Get (Adam) optimiser. Can replace Adam with others if required
-#No input. Return Adam optimiser with learning rate and beta set at start of code.
+#Input: None 
+#Returns: Adam optimiser with learning rate and beta set at start of code.
 def get_optimizer():
     
     return Adam(lr=learning_rate, beta_1=beta_1, beta_2=beta_2) 
 
 
 #Calculate Wasserstein loss functiont for a sample batch. 
-#Note if used discriminator output must be linear, and samples labelled -1 if gen and 1 if real (instead of 0/1)
+#Note: if used discriminator output must be linear, and samples labelled -1 if 
+#      gen and 1 if real (instead of 0/1)
 #Inputs: True and predicted y values
 #Returns: Wasserstein loss
 def wasserstein_loss(y_true, y_pred):
@@ -467,17 +471,22 @@ def wasserstein_loss(y_true, y_pred):
 
 
 #Calculate cramer loss function
-#Inputs: Generated and real inputs for discriminator, as well as the discriminator network itself
+#Inputs: Generated and real inputs for discriminator, as well as the 
+#        discriminator network itself
 #Returns: Cramer loss function
 def cramer_critic(x, y, discriminator):
     
     discriminated_x = discriminator(x)
     
-    return tf.norm(discriminated_x - discriminator(y), axis=1) - tf.norm(discriminated_x, axis=1)
+    return tf.norm(discriminated_x - discriminator(y),
+                   axis=1) - tf.norm(discriminated_x, axis=1)
 
 
-#Get name loss function to be used. If WGAN/Cramer etc must use full functions rather than calling this function (see above)
-#No input. Returns 'binary_crossentropy' loss function currently, can replace with other built in keras loss functions
+#Get name loss function to be used. If WGAN/Cramer etc must use full functions
+#rather than calling this function (see above)
+#Inputs: None 
+#Returns: 'binary_crossentropy' loss function currently, 
+#Note: can replace with other built in Keras loss functions
 def get_loss_function():
     
     return 'binary_crossentropy'
@@ -496,13 +505,19 @@ def build_generator(optimizer, loss_func):
     
     #First layer connected to input layer  
     if RNN:
-        #return_sequences = True to connect two RNN layers. Would need to flatten after CuDNNLSTM if no Bidirectional layer
-        layer = CuDNNLSTM(gen_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True)(gen_input)
-#        layer = CuDNNLSTM(gen_input_nodes, return_sequences=True)(layer)
+        
+        #return_sequences = True to connect two RNN layers. 
+        #Would need to flatten after CuDNNLSTM if no Bidirectional layer
+        layer = CuDNNLSTM(gen_input_nodes, kernel_initializer = \
+                          initializers.RandomNormal(stddev=0.02), 
+                          return_sequences=True)(gen_input)
+        
         layer = Bidirectional(CuDNNLSTM(gen_input_nodes))(layer)
-#        layer = Flatten()(layer)
+        
     else:
-        layer = Dense(gen_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02))(gen_input)
+        layer = Dense(gen_input_nodes, kernel_initializer = \
+                      initializers.RandomNormal(stddev=0.02))(gen_input)
+
         layer = LeakyReLU(0.2)(layer)
         layer = BatchNormalization(momentum=0.8)(layer)
 
@@ -519,7 +534,8 @@ def build_generator(optimizer, loss_func):
     else:
         gen_outputs = Dense(gen_output_dim, activation='tanh')(layer)
     
-    generator = Model(inputs=[gen_input_noise, gen_input_phys], outputs=gen_outputs)
+    generator = Model(inputs=[gen_input_noise, gen_input_phys], 
+                      outputs=gen_outputs)
     
 #   generator = multi_gpu_model(generator, gpus=3)
 
@@ -538,20 +554,30 @@ def build_generator(optimizer, loss_func):
 def build_discriminator(optimizer, loss_func):
 
     #Input layer
-    discrim_input_DLLs = Input(shape=(discrim_DLL_input_dim), name='Input_DLLs')
-    discrim_input_phys = Input(shape=(discrim_phys_input_dim), name='Input_physics')
-    discrim_input = concatenate([discrim_input_DLLs, discrim_input_phys], axis=-1)
+    discrim_input_DLLs = Input(shape=(discrim_DLL_input_dim),
+                               name='Input_DLLs')
+
+    discrim_input_phys = Input(shape=(discrim_phys_input_dim),
+                               name='Input_physics')
+
+    discrim_input = concatenate([discrim_input_DLLs, discrim_input_phys],
+                                axis=-1)
     
     #Input layer    
     if RNN:
-        #return_sequences to connext two RNN layers. Would need to flatten after CuDNNLSTM if no Bidirectional layer
-        layer = CuDNNLSTM(discrim_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02), return_sequences=True)(discrim_input)
-#        layer = CuDNNLSTM(gen_input_nodes, return_sequences=True)(layer)
+        #return_sequences to connext two RNN layers. Would need to flatten 
+        #after CuDNNLSTM if no Bidirectional layer
+        layer = CuDNNLSTM(discrim_input_nodes, kernel_initializer = \
+                          initializers.RandomNormal(stddev=0.02), 
+                          return_sequences=True)(discrim_input)
+
         layer = Bidirectional(CuDNNLSTM(discrim_input_nodes))(layer)
-#        layer = Flatten()(layer)
 
     else:
-        layer = Dense(discrim_input_nodes, kernel_initializer=initializers.RandomNormal(stddev=0.02))(discrim_input)
+
+        layer = Dense(discrim_input_nodes, kernel_initializer = \
+                      initializers.RandomNormal(stddev=0.02))(discrim_input)
+
         layer = LeakyReLU(0.2)(layer)
         layer = Dropout(0.3)(layer)
     
@@ -559,14 +585,16 @@ def build_discriminator(optimizer, loss_func):
     for i in range(discrim_layers):
         layer = Dense(256)(layer)
         layer = LeakyReLU(0.2)(layer)
-        layer = Dropout(0.3)(layer)
+        if not RNN:
+            layer = Dropout(0.3)(layer)
       
-    #Output layer. Usually sigmoid activation so outputs 0-1 (false-true) (if WGAN linear activation)
-    discrim_outputs = Dense(discrim_output_dim, activation=discrim_activation)(layer)
+    #Output layer. Usually sigmoid activation so outputs 0-1 (false-true) 
+    #(if WGAN: linear activation)
+    discrim_outputs = Dense(discrim_output_dim, 
+                            activation=discrim_activation)(layer)
         
-#    discriminator = multi_gpu_model(discriminator, gpus=2)
-
-    discriminator = Model(inputs=[discrim_input_DLLs, discrim_input_phys], outputs=discrim_outputs)    
+    discriminator = Model(inputs=[discrim_input_DLLs, discrim_input_phys], 
+                          outputs=discrim_outputs)    
 
     if WGAN:
         discriminator.compile(loss=wasserstein_loss, optimizer=optimizer)
@@ -576,15 +604,17 @@ def build_discriminator(optimizer, loss_func):
     return discriminator
 
 
-#Build/compile overall GAN network to train generator - output of which is tested via the discriminator
+#Build/compile overall GAN network to train generator - output of which is 
+#tested via the discriminator
 #Input/output dimensions, number of layers etc defined at start of code
-#Inputs: Discriminator and generator networks, as well as optimizer and loss function used to complile network
+#Inputs: Discriminator and generator networks, as well as optimizer and 
+#        loss function used to complile network
 #Returns: compiled GAN network
 def build_gan_network(discriminator, generator, optimizer, loss_func):
     
-    ######################################################################################################################################################
-    #Generator model
-    ######################################################################################################################################################            
+# =============================================================================
+#     Generator model
+# =============================================================================
     
     #Initially discriminator false as only want to train one at a time
     for layer in discriminator.layers:
@@ -602,23 +632,23 @@ def build_gan_network(discriminator, generator, optimizer, loss_func):
     #Output of the generator i.e. DLLs
     gen_output = generator([gen_noise_input, gen_phys_input])
     
-    #Get output of discriminator (probability if the image is real or generated for normal GAN)
+    #Get output of discriminator 
+    #(Usually probability if the image is real or generated for normal GAN)
     gan_output = discriminator([gen_output, gen_phys_input])
 
     #Combined model inputs/outputs
-    generator_model = Model(inputs=[gen_noise_input, gen_phys_input], outputs=gan_output)
-
-#    generator_model = multi_gpu_model(gan, gpus=2)
+    gen_model = Model(inputs=[gen_noise_input, gen_phys_input], 
+                      outputs=gan_output)
     
     if WGAN:
-        generator_model.compile(loss=wasserstein_loss, optimizer=optimizer)
+        gen_model.compile(loss=wasserstein_loss, optimizer=optimizer)
     else:
-        generator_model.compile(loss=loss_func, optimizer=optimizer)
+        gen_model.compile(loss=loss_func, optimizer=optimizer)
 
 
-    ######################################################################################################################################################
-    #Discriminator model
-    ######################################################################################################################################################
+# =============================================================================
+#     Discriminator model
+# =============================================================================
             
     #Now allow discriminator to be trained but not generator
     for layer in discriminator.layers:
@@ -633,50 +663,73 @@ def build_gan_network(discriminator, generator, optimizer, loss_func):
     discrim_noise_input = Input(shape=(discrim_noise_input_dim))
     discrim_phys_input = Input(shape=(discrim_phys_input_dim))
 
-    generated_DLLs_for_discrim = generator([discrim_noise_input, discrim_phys_input])
-    discrim_output_from_gen = discriminator([generated_DLLs_for_discrim, discrim_phys_input])
-    discrim_output_from_real_DLLs = discriminator([real_DLLs, discrim_phys_input])
+    generated_DLLs_for_discrim = generator([discrim_noise_input, 
+                                            discrim_phys_input])
+    discrim_output_from_gen = discriminator([generated_DLLs_for_discrim, 
+                                             discrim_phys_input])
+    discrim_output_from_real_DLLs = discriminator([real_DLLs, 
+                                                   discrim_phys_input])
 
     if grad_loss:
                 
-        #Need to generate weighted averages of real and generated samples, to use for the gradient norm penalty
-        averaged_samples = RandomWeightedAverage()([real_DLLs, generated_DLLs_for_discrim])
+        #Need to generate weighted averages of real and generated samples, 
+        #to use for the gradient norm penalty
+        averaged_samples = RandomWeightedAverage()([real_DLLs, 
+                                                generated_DLLs_for_discrim])
         
-        #Run these samples through the discriminator as well. Note, never really use the discriminator output 
-        #For these samples, only running them to get the gradient norm for the gradient penalty loss.
-        averaged_samples_out = discriminator([averaged_samples, discrim_phys_input])
+        #Run these samples through the discriminator as well. Note, never 
+        #really use the discriminator output. For these samples, only running 
+        #them to get the gradient norm for the gradient penalty loss.
+        averaged_samples_out = discriminator([averaged_samples, 
+                                              discrim_phys_input])
 
-        #Gradient penalty loss function requires the input averaged samples to get gradients. However, 
-        #Keras loss functions can only have two arguments, y_true and y_pred. Get around this by making a 
-        #partial() of the function with the averaged samples here.
-        partial_gp_loss = partial(gradient_penalty_loss, averaged_samples=averaged_samples, gradient_penalty_weight=grad_penalty_weight)
+        #Gradient penalty loss function requires the input averaged samples to 
+        #get gradients. However, Keras loss functions can only have two 
+        #arguments, y_true and y_pred. Get around this by making a  partial() 
+        #of the function with the averaged samples here.
+        partial_gp_loss = partial(gradient_penalty_loss, 
+                                  averaged_samples=averaged_samples, 
+                                  gradient_penalty_weight=grad_penalty_weight)
 
         # Functions need names or Keras will throw an error
         partial_gp_loss.__name__ = 'gradient_penalty'
 
-        discriminator_model = Model(inputs=[real_DLLs, discrim_noise_input, discrim_phys_input],  
-                                    outputs=[discrim_output_from_real_DLLs, discrim_output_from_gen, averaged_samples_out])
+        discrim_model = Model(inputs=[real_DLLs, discrim_noise_input, 
+                                      discrim_phys_input],
+                              outputs=[discrim_output_from_real_DLLs, 
+                                       discrim_output_from_gen, 
+                                       averaged_samples_out])
 
         if WGAN:
-            discriminator_model.compile(optimizer=optimizer, loss=[wasserstein_loss, wasserstein_loss, partial_gp_loss])
+            discrim_model.compile(optimizer=optimizer, 
+                                  loss=[wasserstein_loss, wasserstein_loss, 
+                                        partial_gp_loss])
         else:
-            discriminator_model.compile(optimizer=optimizer, loss=[loss_func, loss_func, partial_gp_loss])
+            discrim_model.compile(optimizer=optimizer, 
+                                  loss=[loss_func, loss_func, partial_gp_loss])
 
     else:
-        discriminator_model = Model(inputs=[real_DLLs, discrim_noise_input, discrim_phys_input], 
-                                outputs=[discrim_output_from_real_DLLs, discrim_output_from_gen])
+        discrim_model = Model(inputs=[real_DLLs, discrim_noise_input, 
+                                      discrim_phys_input], 
+                              outputs=[discrim_output_from_real_DLLs, 
+                                       discrim_output_from_gen])
 
         if WGAN:
-            discriminator_model.compile(optimizer=optimizer, loss=[wasserstein_loss, wasserstein_loss])
+            discrim_model.compile(optimizer=optimizer,
+                                  loss=[wasserstein_loss, wasserstein_loss])
         else:
-            discriminator_model.compile(optimizer=optimizer, loss=[loss_func, loss_func])
+            discrim_model.compile(optimizer=optimizer, 
+                                  loss=[loss_func, loss_func])
 
-    return generator_model, discriminator_model
+    return gen_model, discrim_model
 
 
 #Plot examples of generated DLL vales
-#Inputs: column of one of the generated DLLs, (DLL) name, epoch of the training, number of bins, x and y range for histogram
-def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, y_range = None):
+#Inputs: column of one of the generated DLLs, (DLL) name, epoch of the 
+#        training, number of bins, x and y range for histogram
+#Returns: 0. DLL distributions plotted and saved.
+def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, 
+                  y_range = None):
 
     fig1, ax1 = plt.subplots()
     ax1.cla()
@@ -695,20 +748,25 @@ def plot_examples(generated_vars, var_name, epoch, bin_no=400, x_range = None, y
 
     fig1.savefig(title % epoch, format='eps', dpi=2500)
 
+    return 0
 
-#Use (trained) generator network to predict DLL values and call plotting function to plot histograms
-#Inputs: test data to generate predictions; epoch to save graphs periodically; generator to make predictions; shift/div_num to unnormalise generated data; examples to define number of predictions to be made
-#Returns: No values. Graphs plotted and saved
+#Use (trained) generator network to predict DLL values and call plotting 
+#function to plot histograms
+#Inputs: test data to generate predictions; epoch to save graphs periodically; 
+#        generator to make predictions; shift/div_num to unnormalise generated 
+#        data; examples to define number of predictions to be made
+#Returns: 0. Graphs plotted and saved via plot_examples function
 def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
 
     #Define random set integers, to be used to extract random rows from x_test
     batch_ints = np.random.randint(0, x_test.shape[0], size=examples)
             
-    #Can use random indicies, but must still be sorted for RNN. Otherwise use indicies from a specified starting point
+    #Can use random indicies, but must still be sorted for RNN. 
+    #Otherwise use indicies from a specified starting point
     if RNN:                
         batch_ints = np.sort(batch_ints)
  
-        #Or have all in order?                         
+        #Or have if want all in order:                      
 #        start_index = np.random.randint(0, x_test.shape[0] - examples)
 #        end_index = start_index + examples
 #        batch_ints = np.arange(start_index, end_index)
@@ -727,9 +785,12 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
         phys_data_RNN, _ = create_dataset(phys_data, seq_length)
         gen_input_RNN = [noise_RNN, phys_data_RNN]
 
-        #Generate fake DLLs and reshape to extract just DLLs from sequenced form
-        generated_data = generator.predict(gen_input_RNN, batch_size=apparent_batch_size)
-        generated_data = np.concatenate((generated_data[0,:-1,:], generated_data[:,-1,:]))
+        #Generate fake DLLs and reshape to extract just DLLs from seq form
+        generated_data = generator.predict(gen_input_RNN, 
+                                           batch_size=apparent_batch_size)
+
+        generated_data = np.concatenate((generated_data[0,:-1,:], 
+                                         generated_data[:,-1,:]))
 
     else:
         #Generate fake data DLLs
@@ -741,16 +802,21 @@ def gen_examples(x_test, epoch, generator, shift, div_num, examples=250000):
         generated_data[:,i] = np.multiply(generated_data[:,i], div_num[i])
         generated_data[:,i] = np.add(generated_data[:,i], shift[i])    
         plot_examples(generated_data[:,i], 'DLL'+ DLLs[i], epoch)
+        
+    return 0
 
 
-#Overall network training function. Imports data, split into batches to train, and train networks
-#Inputs: Number of epochs to train over, size of batches to train at a tfime
-#Returns: No values. Calls functions to generate and plot examples periodically. Generator is also saved periodically, and loss functions are plotted and saved
+#Overall network training function. Imports data, split into batches to train, 
+#and train networks
+#Inputs: Number of epochs to train over, size of batches to train at a time
+#Returns: 0. Calls functions to generate and plot examples periodically. 
+#         Generator is also saved periodically, loss functions plotted/saved
 def train(epochs=20, batch_size=128):
 
     print("Importing data...")
     #Get the training/testing data and norm values
-    x_train, x_test, shift, div_num = get_x_data(DLLs, physical_vars, particle_source)
+    x_train, x_test, shift, div_num = get_x_data(DLLs, physical_vars,
+                                                 particle_source)
     print("Data imported")
 
     # Build GAN netowrk
@@ -759,7 +825,8 @@ def train(epochs=20, batch_size=128):
     loss_func = get_loss_function()
     generator = build_generator(optimizer, loss_func)
     discriminator = build_discriminator(optimizer, loss_func)
-    generator_model, discriminator_model = build_gan_network(discriminator, generator, optimizer, loss_func)
+    gen_model, discrim_model = build_gan_network(discriminator, generator, 
+                                                 optimizer, loss_func)
     print("Network built")
 
     #Places holders for losses to be plotted
@@ -786,12 +853,17 @@ def train(epochs=20, batch_size=128):
 
         print('-'*15, 'Epoch %d' % i, '-'*15)
 
-        #If not RNN, shuffle as rows to be taken sequentially (if RNN must be sorted so do not shuffle)
+        #If not RNN, shuffle as rows to be taken sequentially 
+        #(if RNN must be sorted so do not shuffle)
         if not RNN:
             np.random.shuffle(x_train)
 
-        minibatch_size = batch_size * training_ratio #Size of minibatch (data discriminator trained on for each batch generator is trained on)
-        gen_batches = int(x_train.shape[0] // (batch_size * training_ratio)) #Number of batches generator is trained on
+        #Size of minibatch (data discriminator trained on for each batch 
+        #generator is trained on)
+        minibatch_size = batch_size * training_ratio 
+
+        #Number of batches generator is trained on
+        gen_batches = int(x_train.shape[0] // (batch_size * training_ratio))
         
         #Initialise osses for each batch
         gen_loss = []
@@ -804,13 +876,14 @@ def train(epochs=20, batch_size=128):
         for j in tqdm(range(gen_batches)):
             
             if RNN:
-                start_index = np.random.randint(0, x_train.shape[0] - minibatch_size)
+                start_index = np.random.randint(0, (x_train.shape[0] - 
+                                                    minibatch_size))
             else:
                 start_index = j * minibatch_size
                 
             end_index = start_index + minibatch_size
             batch_ints = np.arange(start_index, end_index)
-            discriminator_minibatches = x_train[batch_ints]
+            discrim_minibatches = x_train[batch_ints]
             
             discrim_loss = np.zeros(training_ratio)
             discrim_loss_real = np.zeros(training_ratio)
@@ -820,16 +893,18 @@ def train(epochs=20, batch_size=128):
             #Train discriminator [training_ratio] more times than generator
             for k in range(training_ratio):
                 
-                ######################################################################################################################################################
-                #Training the discriminator
-                ######################################################################################################################################################
+# =============================================================================
+#                Training the discriminator
+# =============================================================================
 
                 #Use batch_ints get data batch for discriminator input
                 if RNN:
                     if training_ratio==1:
                         start_index=0
                     else:
-                        start_index = np.random.randint(0, discriminator_minibatches.shape[0] - batch_size)
+                        start_index = \
+                        np.random.randint(0, (discrim_minibatches.shape[0]  - 
+                                              batch_size))
                 else:
                     start_index = k * batch_size
 
@@ -837,7 +912,7 @@ def train(epochs=20, batch_size=128):
                 batch_ints = np.arange(start_index, end_index)
 
                 #Use batch_ints to form discriminator input 
-                data_batch = discriminator_minibatches[batch_ints]
+                data_batch = discrim_minibatches[batch_ints]
                 phys_data = data_batch[:, DLLs_dim:]
                 DLL_data = data_batch[:, :DLLs_dim]
                 noise = np.random.normal(0, 1, size=[batch_size, noise_dim])
@@ -854,22 +929,35 @@ def train(epochs=20, batch_size=128):
                 
                 #Train discriminator network
                 if grad_loss:
-                    discrim_loss[k], discrim_loss_real[k], discrim_loss_gen[k], discrim_loss_grad[k]  = discriminator_model.train_on_batch([DLL_data, noise, phys_data],  [real_discrim_y, fake_discrim_y, dummy_discrim_y])
+                    discrim_loss[k], discrim_loss_real[k], 
+                    discrim_loss_gen[k], discrim_loss_grad[k]  = \
+                    discrim_model.train_on_batch([DLL_data, noise, phys_data],
+                                                 [real_discrim_y, 
+                                                  fake_discrim_y, 
+                                                  dummy_discrim_y])
                 else:
-                    discrim_loss[k], discrim_loss_real[k], discrim_loss_gen[k]  = discriminator_model.train_on_batch([DLL_data, noise, phys_data],  [real_discrim_y, fake_discrim_y])
+                    discrim_loss[k], discrim_loss_real[k], \
+                    discrim_loss_gen[k] = \
+                    discrim_model.train_on_batch([DLL_data, noise, phys_data], 
+                                                 [real_discrim_y, 
+                                                  fake_discrim_y])
 
 
-            ######################################################################################################################################################
-            #Training the generator (combined network)
-            ######################################################################################################################################################
-
-            #Define random set integers, to be used to extract random rows from x_train
-            batch_ints = np.random.randint(0, x_train.shape[0], size=batch_size)
             
-            #Get batch index numbers. Either sort random ints, or start from random int and use remainder in order
+# =============================================================================
+#             Training the generator (combined network)
+# =============================================================================
+
+            #Def random set integers, used to extract random rows from x_train
+            batch_ints = np.random.randint(0, x_train.shape[0], 
+                                           size=batch_size)
+            
+            #Get batch index numbers. Either sort random ints, or start from 
+            #random int and use remainder in order
             if RNN:
 #                batch_ints = np.sort(batch_ints)
-                start_index = np.random.randint(0, x_train.shape[0] - batch_size)
+                start_index = np.random.randint(0,
+                                                x_train.shape[0] - batch_size)
                 end_index = start_index + batch_size
                 batch_ints = np.arange(start_index, end_index)
 
@@ -888,7 +976,8 @@ def train(epochs=20, batch_size=128):
             discriminator.trainable = False
 
             #Train generator network
-            gen_loss.append(generator_model.train_on_batch([noise, phys_data], gen_y))
+            gen_loss.append(gen_model.train_on_batch([noise, phys_data], 
+                                                     gen_y))
                 
             discrim_loss_batch[j] = np.average(discrim_loss)
             discrim_loss_real_batch[j] = np.average(discrim_loss_real)
@@ -899,28 +988,30 @@ def train(epochs=20, batch_size=128):
         if i == 1 or i % plot_freq == 0:
             gen_examples(x_test, i, generator, shift, div_num)
 
-        #Save generator model when fully trained, half trained and the previous two versions before each
+        #Save generator model when fully trained, half trained 
+        #and the previous two versions before each
         if WGAN:
             network = 'wgan'
         else:
             network = 'gan'
+            
+        #Create HDF5 files:   
         if i == (epochs//2):
-            generator.save('half_trained_' + network + '.h5')  # creates a HDF5 file 'trained_gan.h5'
+            generator.save('half_trained_' + network + '.h5')  
             
         if i == (epochs//2 -2):
-            generator.save('antepenult_half_trained_' + network + '.h5')  # creates a HDF5 file 'trained_gan.h5'
+            generator.save('antepenult_half_trained_' + network + '.h5')
 
         if i == (epochs//2 - 1):
-            generator.save('penult_half_trained_' + network + '.h5')  # creates a HDF5 file 'trained_gan.h5'
+            generator.save('penult_half_trained_' + network + '.h5')
             
         if i == (epochs - 2):
-            generator.save('antepenult_trained_' + network + '.h5')  # creates a HDF5 file 'trained_gan.h5'
+            generator.save('antepenult_trained_' + network + '.h5')
             
         if i == (epochs - 1):
-            generator.save('penult_trained_' + network + '.h5')  # creates a HDF5 file 'trained_gan.h5'
+            generator.save('penult_trained_' + network + '.h5')
         
-        
-        #Average loss functions over batch to give average loss function for this epoch
+        #Average loss functions over batch to give average for this epoch
         gen_loss_batch_av = [np.average(gen_loss)]
         discrim_loss_batch_av = [np.average(discrim_loss_batch)]
         discrim_loss_real_batch_av = [np.average(discrim_loss_real_batch)]
@@ -928,10 +1019,18 @@ def train(epochs=20, batch_size=128):
         discrim_loss_grad_batch_av = [np.average(discrim_loss_grad_batch)]
 
         gen_loss_tot = np.concatenate((gen_loss_tot, gen_loss_batch_av))
-        discrim_loss_tot = np.concatenate((discrim_loss_tot, discrim_loss_batch_av))
-        discrim_loss_real_tot = np.concatenate((discrim_loss_real_tot, discrim_loss_real_batch_av))
-        discrim_loss_gen_tot = np.concatenate((discrim_loss_gen_tot, discrim_loss_gen_batch_av))
-        discrim_loss_grad_tot = np.concatenate((discrim_loss_grad_tot, discrim_loss_grad_batch_av))
+
+        discrim_loss_tot = np.concatenate((discrim_loss_tot, 
+                                           discrim_loss_batch_av))
+
+        discrim_loss_real_tot = np.concatenate((discrim_loss_real_tot, 
+                                                discrim_loss_real_batch_av))
+
+        discrim_loss_gen_tot = np.concatenate((discrim_loss_gen_tot, 
+                                               discrim_loss_gen_batch_av))
+
+        discrim_loss_grad_tot = np.concatenate((discrim_loss_grad_tot, 
+                                                discrim_loss_grad_batch_av))
         
     
     #Array of numbers corresponding to each epoch of training
@@ -940,25 +1039,31 @@ def train(epochs=20, batch_size=128):
     #Plot loss functions
     fig1, ax1 = plt.subplots()
     ax1.cla()
-    ax1.plot(epoch_arr, discrim_loss_tot) #Plot discriminator loss function
-    ax1.plot(epoch_arr, discrim_loss_real_tot) #Plot real DLL discriminator loss function
-    ax1.plot(epoch_arr, discrim_loss_gen_tot) #Plot generated DLL discriminator loss function
-    ax1.plot(epoch_arr, gen_loss_tot) #Plot generator loss function
+    ax1.plot(epoch_arr, discrim_loss_tot) #Plot discriminator loss
+    ax1.plot(epoch_arr, discrim_loss_real_tot) #Plot real DLL discrim loss 
+    ax1.plot(epoch_arr, discrim_loss_gen_tot) #Plot generated DLL discrim loss
+    ax1.plot(epoch_arr, gen_loss_tot) #Plot generator loss
    
     if grad_loss:
         ax1.plot(epoch_arr, discrim_loss_grad_tot) #Plot gradient loss function
-        ax1.legend(["Combined discriminator loss", "Real DLLs discriminator loss", "Gradient loss", "Generated DLLs discriminator loss", "Generator loss"])
+        ax1.legend(["Combined discriminator loss", 
+                    "Real DLLs discriminator loss", "Gradient loss", 
+                    "Generated DLLs discriminator loss", "Generator loss"])
     else:
-        ax1.legend(["Combined discriminator loss", "Real DLLs discriminator loss", "Generated DLLs discriminator loss", "Generator loss"])
+        ax1.legend(["Combined discriminator loss", 
+                    "Real DLLs discriminator loss", 
+                    "Generated DLLs discriminator loss", "Generator loss"])
     
     ax1.set_xlabel('Epochs')
     ax1.set_ylabel('Loss')
     fig1.savefig(network + '_loss.eps', format='eps', dpi=2500)
 
     if WGAN:
-        generator.save('trained_wgan.h5')  # creates a HDF5 file 'trained_gan.h5'
+        generator.save('trained_wgan.h5')  #Create HDF5 file 'trained_gan.h5'
     else: 
-        generator.save('trained_gan.h5') #Saves generator as a HDF5 file 'trained_gan.h5'
+        generator.save('trained_gan.h5') #Save gen as 'trained_gan.h5'
+        
+    return 0
 
 
 #Call training function
