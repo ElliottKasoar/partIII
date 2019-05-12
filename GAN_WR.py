@@ -6,10 +6,49 @@ Created on Wed May  1 02:49:59 2019
 @author: Elliott
 """
 
+# =============================================================================
+# Notes
+# =============================================================================
+
 #Building on GAN_corr_RNN.py. Rewritten to allow implementation of WGAN and 
 #gradient penalty
 #Note: cannot calculate gradient of recurrent layers currently so cannot 
 #implement both simultaneously 
+
+# =============================================================================
+# Expected file structure to run this file:
+# =============================================================================
+
+#Data files for kaon and pion tracks (mod refers to additonal variables added):
+# '../../data/mod-PID-train-data-KAONS.hdf'
+# '../../data/mod-PID-train-data-PIONS.hdf'
+
+#csv files for normalisation of data (shifts and divisors) calc from datafiles
+# '../../data/KAON_norm.csv'
+# '../../data/PION_norm.csv'
+
+# =============================================================================
+# Outputs
+# =============================================================================
+
+# csv file containing defining tracks that have not been used in training: 
+# 'unused_data_mask.csv'
+
+#Plots of DLL distributions during training:
+# GAN_generated_DLLx_epoch_xxx.eps'
+
+#Trained (and half trained, penultimate trained etc.) GAN:
+# 'trained_gan.h5'
+
+#Plots of loss functions:
+# 'GAN_loss.eps'
+
+#Runtime:
+# GAN_runtime.txt'
+
+# =============================================================================
+# Import libraries
+# =============================================================================
 
 import os
 import numpy as np
@@ -30,7 +69,6 @@ import keras.backend as K
 import tensorflow as tf
 from keras.layers.merge import _Merge
 from functools import partial
-
 
 #Time total run from here to end
 t_init = time.time()
@@ -1076,5 +1114,5 @@ runtime = t_final - t_init
 print("Total run time = ", runtime)
 
 #Save runtime as text
-with open('GAN6_runtime.txt', 'w') as f:
+with open('GAN_runtime.txt', 'w') as f:
     print(runtime, file=f)
