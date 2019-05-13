@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 14 16:50:16 2019
 
-@author: Elliott
-"""
+#Import trained generators and produce plots
 
-#Import trained generator and produce plots. 
-#Currently seems to reproduce plots from training i.e. distributions
-#Next, look at correlations between distributions
+#Files assumed:
+
+#Data files for kaon and pion tracks (mod refers to additonal variables added):
+# '../../data/mod-PID-train-data-KAONS.hdf'
+# '../../data/mod-PID-train-data-PIONS.hdf'
+
+#csv files for normalisation of data (shifts and divisors) calc from datafiles
+# '../../data/KAON_norm.csv'
+# '../../data/PION_norm.csv'
+
+#May also use mask files to select test data:
+#'../../GAN_training/GAN_7DLL/setx/unused_data_mask.csv'
 
 import numpy as np
 import pandas as pd
@@ -38,7 +44,7 @@ particle_source_1 = 'KAON'
 particle_source_2 = 'PION'
 
 train_frac = 0.7
-examples=1000000
+examples=2000000
 
 set_text = ""
 unused_mask_loc_k = ''
@@ -72,10 +78,10 @@ print("Loading generators...")
 
 #epochs = 250 Generate P, Pt 
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set17/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set17/trained_gan.h5')
 #set_text += "set17"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set15/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set15/trained_gan.h5')
 #set_text += "set15"
 #
 #frac=0.025
@@ -88,10 +94,10 @@ print("Loading generators...")
 
 #epochs = 500
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set18/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set18/trained_gan.h5')
 #set_text += "set18"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set19/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set19/trained_gan.h5')
 #set_text += "set19"
 #
 #frac=0.1
@@ -104,7 +110,7 @@ print("Loading generators...")
 
 #epochs = 100
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set20/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set20/trained_gan.h5')
 #set_text += "set20"
 
 #frac=0.025
@@ -117,23 +123,23 @@ print("Loading generators...")
 #epochs = 500
 #
 #batch_size = 128
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set22/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set22/trained_gan.h5')
 #set_text += "set22"
 
 #batch_size = 128
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set23/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set23/trained_gan.h5')
 #set_text += "set23"
 
 #batch_size = 1024
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set24/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set24/trained_gan.h5')
 #set_text += "set24"
 
 #batch_size = 32
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set25/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set25/trained_gan.h5')
 #set_text += "set25"
 
 #batch_size = 4096
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set26/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set26/trained_gan.h5')
 #set_text += "set26"
 #
 #frac = 0.1
@@ -146,10 +152,10 @@ print("Loading generators...")
 
 #epochs = 500
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set28/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set28/trained_gan.h5')
 #set_text += "set28"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set27/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set27/trained_gan.h5')
 #set_text += "set27"
 #
 #frac = 0.1
@@ -164,11 +170,11 @@ print("Loading generators...")
 
 #epochs = 500
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set31/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set31/trained_gan.h5')
 #set_text += "set31"
 #
 
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set30/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set30/trained_gan.h5')
 #set_text += "set30"
 #
 #frac = 0.1
@@ -180,27 +186,28 @@ print("Loading generators...")
 
 #epochs = 500
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set34/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set34/trained_gan.h5')
 #set_text += "set34"
 #
-##generator_k = load_model('../../GAN_data/GAN_7DLL/set37/trained_gan.h5')
+##generator_k = load_model('../../GAN_training/GAN_7DLL/set37/trained_gan.h5')
 ##set_text += "set37"
 ##alt_model_k = True
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set44/trained_wgan.h5')
-#set_text += "set44"
-#alt_model_k = True
-#
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set35/trained_gan.h5')
-#set_text += "set35"
-#
-#frac = 0.1
-#input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-#                 'TrackRich1ExitZ']
-#
-#physical_vars = input_physical_vars
-#
+generator_k = load_model('../../GAN_training/GAN_7DLL/set44/trained_wgan.h5')
+set_text += "set44"
+alt_model_k = True
+
+generator_p = load_model('../../GAN_training/GAN_7DLL/set35/trained_gan.h5')
+set_text += "set35"
+
+frac = 0.1
+input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+                 'TrackRich1ExitZ']
+
+physical_vars = input_physical_vars
+
+DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 
 ###############################################################################
 
@@ -209,150 +216,167 @@ print("Loading generators...")
 #epochs = 500
 #frac = frac = 1 #0.1
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set43/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set43/trained_gan.h5')
 #set_text += "set43"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set45/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set45/trained_gan.h5')
 #set_text += "set45"
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set58/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set58/trained_gan.h5')
 #set_text += "set58"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set61/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set61/trained_gan.h5')
 #set_text += "set61"
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set63/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set63/trained_gan.h5')
 #set_text += "set63"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set66/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set66/trained_gan.h5')
 #set_text += "set66"
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set64/trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set64/penult_trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set64/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set64/penult_trained_gan.h5')
 #set_text += "set64"
 #set_text += "av"
 #set_text += "alt"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set67/trained_gan.h5')
-#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set67/penult_trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set67/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set67/penult_trained_gan.h5')
 #set_text += "set67"
 #set_text += "av"
 #set_text += "alt"
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set65/trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set65/penult_trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set65/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set65/penult_trained_gan.h5')
 #set_text += "set65"
 #set_text += "av"
 #set_text += "alt"
 
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set68/trained_gan.h5')
-#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set68/penult_trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set68/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set68/penult_trained_gan.h5')
 #set_text += "set68"
 #set_text += "av"
 #set_text += "alt"
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set69/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set69/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set69/unused_data_mask.csv'
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set69/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set69/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set69/unused_data_mask.csv'
 #set_text += "set69"
-##set_text += "av"
+#set_text += "av"
 ##set_text += "alt"
+#set_text += "new"
+
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set79/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set79/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set79/unused_data_mask.csv'
+#set_text += "set79"
+#set_text += "av"
+##set_text += "alt"
+#set_text += "new"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set72/trained_gan.h5')
-##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set72/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set72/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set72/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set72/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set72/unused_data_mask.csv'
 #set_text += "set72"
-##set_text += "av"
+#set_text += "av"
 ##set_text += "alt"
+#set_text += "new"
 
-
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set70/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set70/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set70/unused_data_mask.csv'
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set70/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set70/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set70/unused_data_mask.csv'
 #set_text += "set70"
 ##set_text += "av"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set73/trained_gan.h5')
-##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set73/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set73/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set73/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set73/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set73/unused_data_mask.csv'
 #set_text += "set73"
 ##set_text += "av"
 ##set_text += "alt"
 
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set75/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set75/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set75/unused_data_mask.csv'
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set75/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set75/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set75/unused_data_mask.csv'
 #set_text += "set75"
 ##set_text += "av"
 ##set_text += "alt"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set76/trained_gan.h5')
-##generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set76/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set76/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set76/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set76/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set76/unused_data_mask.csv'
 #set_text += "set76"
 ##set_text += "av"
 ##set_text += "alt"
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set88/half_trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set88/penult_half_trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set88/half_trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set88/penult_half_trained_gan.h5')
 #set_text += "set88"
 #
-##generator_k = load_model('../../GAN_data/GAN_7DLL/set88/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set88/penult_trained_gan.h5')
-#set_text += "set88.1"
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set88/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set88/penult_trained_gan.h5')
+#set_text += "set88-1"
 #
-##unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set88/unused_data_mask.csv'
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set88/unused_data_mask.csv'
 #set_text += "av"
-##set_text += "alt"
-
-generator_k = load_model('../../GAN_data/GAN_7DLL/set113/half_trained_gan.h5')
-generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set113/penult_half_trained_gan.h5')
-set_text += "set113"
-
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set113/trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set113/penult_trained_gan.h5')
-#set_text += "set113.1"
-
-unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set113/unused_data_mask.csv'
-set_text += "av"
 #set_text += "alt"
-alt_model_k = True
 
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set113/half_trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set113/penult_half_trained_gan.h5')
+#set_text += "set113"
 
-generator_p = load_model('../../GAN_data/GAN_7DLL/set98/half_trained_gan.h5')
-generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set98/penult_half_trained_gan.h5')
-set_text += "set98"
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set113/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set113/penult_trained_gan.h5')
+#set_text += "set113-1"
 
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set98/trained_gan.h5')
-#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set98/penult_trained_gan.h5')
-#set_text += "set98.1"
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set113/unused_data_mask.csv'
+#set_text += "av"
+#set_text += "alt"
+#alt_model_k = True
 #
-unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set98/unused_data_mask.csv'
-set_text += "av"
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set98/half_trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set98/penult_half_trained_gan.h5')
+#set_text += "set98"
+#
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set98/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set98/penult_trained_gan.h5')
+#set_text += "set98-1"
+#
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set98/unused_data_mask.csv'
+#set_text += "av"
 #set_text += "alt"
+#
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set117/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set117/penult_trained_gan.h5')
+#set_text += "set117"
+#
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set117/unused_data_mask.csv'
+#set_text += "av"
+#set_text += "alt"
+#alt_model_p = True
 
-gen_av = True
-concat = True
-unused_mask_k = True
-unused_mask_p = True
-
-DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
-
-input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                       'TrackRich2ExitY', 'TrackRich2ExitZ']
-
+#gen_av = True
+#concat = True
+#unused_mask_k = True
+#unused_mask_p = True
+##
+#DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+##
+#input_physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                       'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                       'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                       'TrackRich2ExitY', 'TrackRich2ExitZ']
+#
 ##physical_vars = input_physical_vars
 #
-physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
-                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
-                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
-                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
-                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
-                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
-                 'RICH2ConeNum']
+#physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX', 'TrackVertexY', 'TrackVertexZ', 
+#                 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ', 'TrackRich1ExitX', 'TrackRich1ExitY', 
+#                 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY', 'TrackRich2EntryZ', 'TrackRich2ExitX', 
+#                 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0', 'RICH1ExitDist0', 'RICH2EntryDist0',
+#                 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1', 'RICH2EntryDist1', 'RICH2ExitDist1', 
+#                 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2', 'RICH2ExitDist2', 'RICH1ConeNum',
+#                 'RICH2ConeNum']
 
 ###############################################################################
 
@@ -361,30 +385,47 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #epochs = 500
 #frac = frac = 1 #0.1
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set59/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set59/trained_gan.h5')
 #set_text += "set59"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set62/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set62/trained_gan.h5')
 #set_text += "set62"
-
-#Broken???
-
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set71/trained_gan.h5')
-#generator_k_2 = load_model('../../GAN_data/GAN_7DLL/set71/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/GAN_7DLL/set71/unused_data_mask.csv'
+#
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set71/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set71/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set71/unused_data_mask.csv'
 #set_text += "set71"
-##set_text += "av"
+#set_text += "av"
 ##set_text += "alt"
 #set_text += "test"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set74/trained_gan.h5')
-#generator_p_2 = load_model('../../GAN_data/GAN_7DLL/set74/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/GAN_7DLL/set74/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set74/trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set74/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set74/unused_data_mask.csv'
 #set_text += "set74"
-##set_text += "av"
+#set_text += "av"
 ##set_text += "alt"
 #set_text += "test"
 #
+#
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set118/half_trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set118/penult_half_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set118/unused_data_mask.csv'
+#alt_model_k = True
+#set_text += "set118"
+#set_text += "av"
+##set_text += "alt"
+##set_text += "test"
+##
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set119/half_trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set119/penult_half_trained_gan.h5')
+#alt_model_p = True
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set119/unused_data_mask.csv'
+#set_text += "set119"
+#set_text += "av"
+##set_text += "alt"
+##set_text += "test"
+
 #gen_av = True
 #concat = True
 #
@@ -412,10 +453,10 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #epochs = 500
 #frac = 1 #0.1
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set47/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set47/trained_gan.h5')
 #set_text += "set47"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set46/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set46/trained_gan.h5')
 #set_text += "set46"
 #
 #
@@ -431,7 +472,6 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #
 #physical_vars = input_physical_vars
 #
-
 ###############################################################################
 
 #Added corr info but only used NN data
@@ -439,30 +479,30 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #epochs = 500
 #frac = 1 #0.1
 #
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set48/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set48/trained_gan.h5')
 #set_text += "set48"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set49/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set49/trained_gan.h5')
 #set_text += "set49"
 #
 #Reduced inner layers to 4
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set50/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set50/trained_gan.h5')
 #set_text += "set50"
 
 #Reduced inner layers to 4
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set51/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set51/trained_gan.h5')
 #set_text += "set51"
 
 #Reduced inner layers to 6
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set52/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set52/trained_gan.h5')
 #set_text += "set52"
 #
 #Reduced inner layers to 6
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set53/trained_gan.h5')
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set53/trained_gan.h5')
 #set_text += "set53"
 #
 ##Reduced inner layers to 4, frac = 0.2
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set54/trained_gan.h5')
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set54/trained_gan.h5')
 #set_text += "set54"
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
@@ -492,11 +532,22 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #epochs = 500 #(1000 for full gen)
 #frac = 1 #0.2
 
-#generator_k = load_model('../../GAN_data/GAN_7DLL/set55/trained_gan.h5')
-#set_text += "set55.1"
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set55/half_trained_gan.h5')
+#set_text += "set55"
+##generator_k = load_model('../../GAN_training/GAN_7DLL/set55/trained_gan.h5')
+##set_text += "set55-1"
 #
-#generator_p = load_model('../../GAN_data/GAN_7DLL/set56/trained_gan.h5')
-#set_text += "set56.1"
+#set_text += "new"
+#
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set56/half_trained_gan.h5')
+#set_text += "set56"
+#
+##generator_p = load_model('../../GAN_training/GAN_7DLL/set56/trained_gan.h5')
+##set_text += "set56-1"
+#set_text += "new"
+#
+##gen_av = True
+##concat = True
 #
 #DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
 #
@@ -523,32 +574,32 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 #apparent_batch_size = batch_size - seq_length + 1
 #sort_var = 'RICH1EntryDist0'
 #
-#generator_k = load_model('../../GAN_data/set90/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/set90/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/set90/unused_data_mask.csv'
+#generator_k = load_model('../../GAN_training/set90/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_training/set90/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/set90/unused_data_mask.csv'
 #set_text += "set90"
 ##set_text += "av"
 ###set_text += "alt"
 #
 #
-#generator_p = load_model('../../GAN_data/set93/trained_gan.h5')
-##generator_p_2 = load_model('../../GAN_data/set93/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/set93/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/set93/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_training/set93/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/set93/unused_data_mask.csv'
 #set_text += "set93"
 ##set_text += "av"
 ###set_text += "alt"
 
-#generator_k = load_model('../../GAN_data/set96/trained_gan.h5')
-##generator_k_2 = load_model('../../GAN_data/set96/penult_trained_gan.h5')
-#unused_mask_loc_k = '../../GAN_data/set96/unused_data_mask.csv'
+#generator_k = load_model('../../GAN_training/set96/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_training/set96/penult_trained_gan.h5')
+#unused_mask_loc_k = '../../GAN_training/set96/unused_data_mask.csv'
 #set_text += "set96"
 ##set_text += "av"
 ###set_text += "alt"
 #
 #
-#generator_p = load_model('../../GAN_data/set97/trained_gan.h5')
-##generator_p_2 = load_model('../../GAN_data/set97/penult_trained_gan.h5')
-#unused_mask_loc_p = '../../GAN_data/set97/unused_data_mask.csv'
+#generator_p = load_model('../../GAN_training/set97/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_training/set97/penult_trained_gan.h5')
+#unused_mask_loc_p = '../../GAN_training/set97/unused_data_mask.csv'
 #set_text += "set97"
 ##set_text += "av"
 ###set_text += "alt"
@@ -579,6 +630,105 @@ physical_vars = ['TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
 
 ###############################################################################
 
+#All orig data and new data inc run/even num, alt models:
+
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set114/half_trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set114/penult_half_trained_gan.h5')
+#set_text += "set114"
+##
+##generator_k = load_model('../../GAN_training/GAN_7DLL/set114/trained_gan.h5')
+##generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set114/penult_trained_gan.h5')
+##set_text += "set114-1"
+#
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set114/unused_data_mask.csv'
+#set_text += "av"
+###set_text += "alt"
+#alt_model_k = True
+#
+#
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set116/half_trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set116/penult_half_trained_gan.h5')
+#set_text += "set116"
+#
+##generator_p = load_model('../../GAN_training/GAN_7DLL/set116/trained_gan.h5')
+##generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set116/penult_trained_gan.h5')
+##set_text += "set116-1"
+#
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set116/unused_data_mask.csv'
+#set_text += "av"
+#set_text += "alt"
+#alt_model_p = True
+#
+#
+
+
+#generator_k = load_model('../../GAN_training/GAN_7DLL/set115/trained_gan.h5')
+#generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set115/penult_trained_gan.h5')
+#set_text += "set115"
+
+#unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set115/unused_data_mask.csv'
+#set_text += "av"
+#set_text += "alt"
+#alt_model_k = True
+
+#unused_mask_k = True
+#unused_mask_p = True
+#gen_av = True
+#concat = True
+#
+#input_physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
+#                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
+#                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY',
+#                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ', 'RICH1EntryDist0',
+#                 'RICH1ExitDist0', 'RICH2EntryDist0', 'RICH2ExitDist0', 'RICH1EntryDist1', 'RICH1ExitDist1',
+#                 'RICH2EntryDist1', 'RICH2ExitDist1', 'RICH1EntryDist2', 'RICH1ExitDist2', 'RICH2EntryDist2',
+#                 'RICH2ExitDist2', 'RICH1ConeNum', 'RICH2ConeNum']
+#
+#DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+#
+#physical_vars = input_physical_vars
+#
+###############################################################################
+
+#WGAN testing... Need alt PION stuff
+
+generator_k = load_model('../../GAN_training/GAN_7DLL/set103/trained_wgan.h5')
+generator_k_2 = load_model('../../GAN_training/GAN_7DLL/set103/penult_trained_wgan.h5')
+set_text += "set103"
+
+unused_mask_loc_k = '../../GAN_training/GAN_7DLL/set103/unused_data_mask.csv'
+set_text += "av"
+##set_text += "alt"
+alt_model_k = True
+#
+#
+#generator_p = load_model('../../GAN_training/GAN_7DLL/set116/half_trained_gan.h5')
+#generator_p_2 = load_model('../../GAN_training/GAN_7DLL/set116/penult_half_trained_gan.h5')
+#set_text += "set116"
+#
+#unused_mask_loc_p = '../../GAN_training/GAN_7DLL/set116/unused_data_mask.csv'
+#set_text += "av"
+#set_text += "alt"
+#alt_model_p = True
+#
+
+unused_mask_k = True
+unused_mask_p = True
+gen_av = True
+concat = True
+
+input_physical_vars = ['RunNumber', 'EventNumber', 'TrackP', 'TrackPt', 'NumLongTracks', 'NumPVs', 'TrackVertexX',
+                 'TrackVertexY', 'TrackVertexZ', 'TrackRich1EntryX', 'TrackRich1EntryY', 'TrackRich1EntryZ',
+                 'TrackRich1ExitX', 'TrackRich1ExitY', 'TrackRich1ExitZ', 'TrackRich2EntryX', 'TrackRich2EntryY',
+                 'TrackRich2EntryZ', 'TrackRich2ExitX', 'TrackRich2ExitY', 'TrackRich2ExitZ']
+
+DLLs = ['e', 'mu', 'k', 'p', 'd', 'bt']
+
+physical_vars = input_physical_vars
+
+###############################################################################
+
+
 print("Generators loaded")
 
 #Old dimensional stuff
@@ -597,53 +747,27 @@ DLLs_dim = len(DLLs)
 data_dim = DLLs_dim + phys_dim
 gen_input_dim = noise_dim + input_phys_dim 
 
+input_phys_index = []
+
+for i in range(input_phys_dim):
+    for k in range(phys_dim):
+        if input_physical_vars[i] == physical_vars[k]:
+            input_phys_index.append(k)
+            break
+
 #If averaging, half examples each.
 if gen_av:
     if not concat:
         examples = examples//2
 
-######################################################################################################################################################################################
+# =============================================================================
+# Functions
+# =============================================================================
 
-#Import data via pandas from data files
-def import_single_var(var_type, particle_source):
-    
-    if(particle_source == 'KAON'):
-    
-        datafile_kaon = '../../data/mod-PID-train-data-KAONS.hdf'
-        data_kaon = pd.read_hdf(datafile_kaon, 'KAONS')
-        data_loc = data_kaon
-        
-    elif(particle_source == 'PION'):
-    
-        datafile_pion = '../../data/mod-PID-train-data-PIONS.hdf' 
-        data_pion = pd.read_hdf(datafile_pion, 'PIONS') 
-        data_loc = data_pion
-
-    else:
-        print("Please select either kaon or pion as particle source")
-    
-    if subset:
-        if sub_min is not None:
-            if sub_max is not None:
-                bool_mask_kaon = (data_kaon[sub_var] >= sub_min & data_kaon[sub_var] <= sub_max)
-                bool_mask_pion = (data_pion[sub_var] >= sub_min & data_pion[sub_var] <= sub_max)
-            else:
-                bool_mask_kaon = (data_kaon[sub_var] >= sub_min)
-                bool_mask_pion = (data_pion[sub_var] >= sub_min)
-        elif sub_max is not None:
-                bool_mask_kaon = (data_kaon[sub_var] <= sub_max)
-                bool_mask_pion = (data_pion[sub_var] <= sub_max)
-        else:
-            print("Subset set to true but no limits given!")
-            
-        data_kaon = data_kaon[bool_mask_kaon]
-        data_pion = data_pion[bool_mask_pion]
-    
-    data = data_loc.loc[:, var_type]
-
-    return data
-
-
+#Import all data via pandas from data files
+#Inputs: Particle source e.g. KAONS corresponding to the datafile from which 
+#        data will be imported
+#Returns: pandas structure containing all variables from the source
 def import_all_var(particle_source):
     
     #Import data from kaons and pions    
@@ -672,6 +796,11 @@ def import_all_var(particle_source):
     return data
 
 
+#Create sequences of data needed for RNN
+#Inputs: data array to be made into sequences, length of sequences (=look_back)
+#Returns: arrays of sequenced data, array containing the final row of each seq
+#Note: Number of sequences = original number of rows - look_back + 1 
+#      e.g. input 10 rows, lookback = 4 -> 7 output
 def create_dataset(dataset, look_back=1):
   
     dataX, dataY = [], []
@@ -833,7 +962,10 @@ def get_x_data(DLLs, ref_particle, physical_vars, particle_source, examples, unu
     
     return x_test, shift, div_num 
     
-######################################################################################################################################################################################
+
+# =============================================================================
+# Plotting
+# =============================================================================
 
 #Make scatter plot w/ colour of correlations between two variables (e.g. DLLs)
 def col_scatt(var1, var2, part_source_1, DLL_particle_1, ref_particle_1, part_source_2,  DLL_particle_2, ref_particle_2, max_var_index, real_gen_text, x_range=None, y_range=None, zero_lines=0, save_index=0, size=1):
@@ -915,8 +1047,8 @@ def col_scatt(var1, var2, part_source_1, DLL_particle_1, ref_particle_1, part_so
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.scatter(x, y, c=z, s=size, edgecolor='')
-    ax1.set_xlabel(DLL_1_text)
-    ax1.set_ylabel(DLL_2_text)
+    ax1.set_xlabel(DLL_1_text, fontsize=13)
+    ax1.set_ylabel(DLL_2_text, fontsize=13)
     ax1.set_xlim(x_range)
     ax1.set_ylim(y_range)
     
@@ -926,13 +1058,15 @@ def col_scatt(var1, var2, part_source_1, DLL_particle_1, ref_particle_1, part_so
     
     if(max_var_index >= save_index):
         fig1.savefig(title, format='eps', dpi=1000)
-    
-    
+
+    return 0
+
 ######################################################################################################################################################################################
+
 #Plot efficiency against momentum
 def eff_mom_plot(p_points, source_1_eff_0, source_1_eff_5, source_2_eff_0, source_2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_max, p_label):
  
-    title = DLL_part_1 + "_" + DLL_part_2 + "_" + particle_source_1 + "_" + particle_source_2 + "_" + str(p_max) + p_label
+    title = DLL_part_1 + "_" + DLL_part_2 + "_" + particle_source_1 + "_" + particle_source_2 + "_" + str(int(p_max)) + p_label
     
     if(particle_source_1 == 'PION'):
         particle_source_1 = r'$\pi\ $'
@@ -943,14 +1077,14 @@ def eff_mom_plot(p_points, source_1_eff_0, source_1_eff_5, source_2_eff_0, sourc
         particle_source_2 = r'$\pi\ $'
     elif(particle_source_2 == 'KAON'):
         particle_source_2 = 'K'        
-            
+
     if(DLL_part_1 == 'pi'):
         DLL_part_1 = r'$\pi\ $'
     elif(DLL_part_1 == 'k'):
         DLL_part_1 = 'K'
       
     if(DLL_part_2 == 'pi'):
-        DLL_part_2 = r'$\pi\ $'
+        DLL_part_2 = r'$\pi) $'
     elif(DLL_part_2 == 'k'):
         DLL_part_2 = 'K'
     
@@ -961,17 +1095,18 @@ def eff_mom_plot(p_points, source_1_eff_0, source_1_eff_5, source_2_eff_0, sourc
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.set_ylim(0,1.4)
-    ax1.set_xlabel('Momentum (GeV/c)')
-    ax1.set_ylabel('Efficiency')
+    ax1.set_xlabel('Momentum (GeV/c)', fontsize=13)
+    ax1.set_ylabel('Efficiency', fontsize=13)
     ax1.yaxis.set_minor_locator(AutoMinorLocator(4))
     
     s1_0 = ax1.scatter(p_points, source_1_eff_0, s = 5, marker = 'o', facecolors = 'none', edgecolors = 'r')
     s1_5 = ax1.scatter(p_points, source_1_eff_5, s = 5, marker = 'o', color = 'r')
     s2_0 = ax1.scatter(p_points, source_2_eff_0, s = 5, marker = 's', facecolors = 'none', edgecolors = 'k')
     s2_5 = ax1.scatter(p_points, source_2_eff_5, s = 5, marker = 's', color = 'k')    
-    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0)', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
+    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0', process_1_text + ', ' + DLL_text + ' > 5', process_2_text + ', ' + DLL_text + ' > 0', process_2_text + ', ' + DLL_text + ' > 5'), loc='upper right', ncol=2, fontsize=11)
     fig1.savefig("./plots/" + set_text + "_" + title + subset_text + ".eps", format='eps', dpi=1000)
     
+    return 0
 
 #Calculate efficiency of particle identification for general DLL
 def calc_eff(bins_no, DLL, DLL_lim, data_no, bounds, bin_var):
@@ -1043,7 +1178,7 @@ def calc_p(p_bins_no, p_max, uni_bins,exp_bins, exponent):
     return p_points, p_bounds
 
 
-#Calculate and plot efficiency for K-> K
+#Calculate and plot efficiency e.g. for K -> K
 def eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, DLL_1, mom_1, DLL_2, mom_2, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_label):
 
     #Calculate the momentum bin centres and bounds
@@ -1064,9 +1199,10 @@ def eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, DLL_1, mom_1, D
     
     eff_mom_plot(p_points, source_1_eff_0, source_1_eff_5, source_2_eff_0, source_2_eff_5, DLL_part_1, DLL_part_2, particle_source_1, particle_source_2, p_max, p_label)
 
-######################################################################################################################################################################################
+    return 0
 
 
+#Plot calc and plot general id/mis-id plots e.g. for numpvs
 def id_misid_eff(DLL1, DLL2, phys_var_1, phys_var_2, bins_no, DLL_lim, DLL_no, phys_var_range, var_name, x_range, DLL_label, var_range):
 
     #Number of data points
@@ -1082,8 +1218,39 @@ def id_misid_eff(DLL1, DLL2, phys_var_1, phys_var_2, bins_no, DLL_lim, DLL_no, p
         plot_title = "No. Tracks in Event"
     elif var_name == 'NumPVs':
         plot_title = "No. Reco PVs in Event"
+
     elif var_name == 'RICH1EntryDist0':
-        plot_title = "Distance to nearest track at RICH1 Entry"
+        plot_title = "Nearest track at RICH 1 entry / mm"
+    elif var_name == 'RICH1ExitDist0':
+        plot_title = "Nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist0':
+        plot_title = "Nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist0':
+        plot_title = "Nearest track at RICH 2 exit / mm"
+
+    elif var_name == 'RICH1EntryDist1':
+        plot_title = "2nd nearest track at RICH 1 entry / mm"
+    elif var_name == 'RICH1ExitDist1':
+        plot_title = "2nd nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist1':
+        plot_title = "2nd nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist1':
+        plot_title = "2nd nearest track at RICH 2 exit / mm"
+
+    elif var_name == 'RICH1EntryDist2':
+        plot_title = "3rd nearest track at RICH 1 entry /mm"
+    elif var_name == 'RICH1ExitDist2':
+        plot_title = "3rd nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist2':
+        plot_title = "3rd nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist2':
+        plot_title = "3rd nearest track at RICH 2 exit / mm"
+        
+    elif var_name == 'RICH1ConeNum':
+        plot_title = "Tracks in RICH 1 Cone"
+    elif var_name == 'RICH2ConeNum':
+        plot_title = "Tracks in RICH 2 Cone"
+        
     else:
         plot_title = var_name
             
@@ -1107,8 +1274,8 @@ def id_misid_eff(DLL1, DLL2, phys_var_1, phys_var_2, bins_no, DLL_lim, DLL_no, p
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.set_xlim(x_range[0], x_range[1])
-    ax1.set_xlabel('Kaon ID Efficiency')
-    ax1.set_ylabel('Pion Mis-ID Efficiency')
+    ax1.set_xlabel('Kaon ID Efficiency', fontsize=13)
+    ax1.set_ylabel('Pion Mis-ID Efficiency', fontsize=13)
 #    ax1.xaxis.set_minor_locator(AutoMinorLocator(4))
     
     if bins_no == 4:
@@ -1120,13 +1287,14 @@ def id_misid_eff(DLL1, DLL2, phys_var_1, phys_var_2, bins_no, DLL_lim, DLL_no, p
         for i in range(bins_no):
             ax1.semilogy(source_1_eff_av[i,:], source_2_eff_av[i,:], markersize=4, label=labels[i])
             
-    ax1.legend(title=plot_title, loc='upper left', fontsize=8)
+    ax1.legend(title=plot_title, loc='upper left', fontsize=11)
     
     fig1.savefig("./plots/" + set_text + "_" + "kID_pMID_eff_" + var_name + "_" + DLL_label + subset_text + ".eps", format='eps', dpi=1000)
 
+    return 0
 
-######################################################################################################################################################################################
 
+#Plot histogram of a single DLL
 def plot_DLL_hist(DLL_data, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
         
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_hist.eps"
@@ -1167,7 +1335,10 @@ def plot_DLL_hist(DLL_data, DLL_particle, ref_particle, particle_source, bin_no=
     
     fig1.savefig("./plots/" + set_text + "_" + title, format='eps', dpi=2500)
 
+    return 0
 
+
+#Plot two histogram between - real and generated DLLs on the same plot
 def plot_two_DLL_hist(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle_source, legend_loc, bin_no=200, x_range=None, y_range=None):
         
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_two_hist.pdf"
@@ -1216,7 +1387,10 @@ def plot_two_DLL_hist(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, partic
 
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+    return 0
 
+
+#Plot four histogram between - two sets of real and generated DLLs on the same plot
 def plot_four_DLL_hist(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, legend_loc, bin_no=200, x_range=None, y_range=None):
 
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_four_hist.pdf"
@@ -1267,7 +1441,10 @@ def plot_four_DLL_hist(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data
 
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+    return 0
 
+
+#Plot histogram between two general variables
 def plot_gen_hist(var_data, var_name, particle_source, bin_no=200, x_range=None, y_range=None):
         
     if var_name == 'TrackP':
@@ -1295,7 +1472,8 @@ def plot_gen_hist(var_data, var_name, particle_source, bin_no=200, x_range=None,
     fig1.savefig("./plots/" + set_text + "_" + title, format='eps', dpi=2500)
 
 
-#Using pdfs for some reason?
+#Plot ratios for two sets of real/generated data
+#Using pdfs since /0 errors breaks eps
 def plot_hist_ratio(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
 
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_ratio.pdf"
@@ -1322,8 +1500,11 @@ def plot_hist_ratio(DLL_data_1, DLL_data_2, DLL_particle, ref_particle, particle
 
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+    return 0
 
-#Using pdfs for some reason?
+
+#Plot histogram and ratios for two sets of real/generated data
+#Using pdfs since /0 errors breaks eps
 def plot_hist_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, bin_no=200, x_range=None, y_range=None):
 
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_ratios.pdf"
@@ -1384,8 +1565,10 @@ def plot_hist_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2
 
     fig1.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+    return 0
 
 
+#Plot ratios and histograms of two sets of real/gen DLLs, all together
 def plot_hist_and_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_data_2_real, DLL_particle, ref_particle, particle_source, legend_loc, bin_no_hist=200, bin_no_ratio=200, x_range=None, y_range_hist=None, y_range_ratio=None):
 
     title = "DLL" + DLL_particle + "-" + ref_particle + "_" + particle_source + subset_text + "_hists_and_ratios.pdf"
@@ -1468,7 +1651,10 @@ def plot_hist_and_ratios(DLL_data_1_gen, DLL_data_1_real, DLL_data_2_gen, DLL_da
 
     fig.savefig("./plots/" + set_text + "_" + title, format='pdf', dpi=2500)
 
+    return 0
 
+
+#Calculate overlap between two distributions
 def histogram_intersection(DLL_data_1, DLL_data_2, bin_no=200, x_range=None):
    
    hist1, bins = np.histogram(DLL_data_1, bins=bin_no, range=x_range, density=True)
@@ -1479,14 +1665,14 @@ def histogram_intersection(DLL_data_1, DLL_data_2, bin_no=200, x_range=None):
        sm += min(bins[i]*hist1[i], bins[i]*hist2[i])
    return sm
 
-######################################################################################################################################################################################
 
+#Plot examples of DLL distributions
 def plot_examples(generated_vars, var_name, bin_no=400, x_range = None, y_range = None):
     
     fig1, ax1 = plt.subplots()
     ax1.cla()
     
-    title = 'GAN7_generated_' + var_name + subset_text + '_trained_.eps'
+    title = 'GAN_generated_' + var_name + subset_text + '_trained_.eps'
     
     if y_range is not None:
         ax1.set_ylim(bottom = 0, top = y_range)
@@ -1500,13 +1686,19 @@ def plot_examples(generated_vars, var_name, bin_no=400, x_range = None, y_range 
     
     fig1.savefig("./plots/" + set_text + "_" + title, format='eps', dpi=2500)
 
+    return 0
 
+
+#Use imported generator to simulate DLL vales
 def generate_data(x_test, generator, alt_model, data_no):
     
     noise = np.random.normal(0, 1, size=[data_no, noise_dim])
-    phys_data = x_test[:, DLLs_dim:DLLs_dim + input_phys_dim]
+    phys_data = x_test[:, np.add(input_phys_index,DLLs_dim)]    
+#    phys_data = x_test[:, DLLs_dim:DLLs_dim + input_phys_dim]
     gen_input = np.concatenate((noise, phys_data), axis=1)
 
+    t1 = time.time()
+    
     #Generate fake data (DLLs only)
     if RNN:
 
@@ -1525,7 +1717,12 @@ def generate_data(x_test, generator, alt_model, data_no):
         #Generate fake data (DLLs only)
         generated_vars = generator.predict(gen_input)
 
+    t2 = time.time()
+    
+    print("Time to generate ", generated_vars.shape[0], " tracks: ", (t2-t1))
+    
     return generated_vars
+
 
 #Shift data (real and generated) back to proper distribution
 def data_shift(x_test, div_num, shift, generated_vars, particle_source):
@@ -1546,7 +1743,10 @@ def data_shift(x_test, div_num, shift, generated_vars, particle_source):
 
     return generated_vars
 
-######################################################################################################################################################################################
+
+# =============================================================================
+# Import data
+# =============================================================================
 
 print("Importing data...")
 #Get the training and testing data
@@ -1556,7 +1756,12 @@ print("Data imported")
 
 ######################################################################################################################################################################################
 
+# =============================================================================
+# Generate data
+# =============================================================================
+
 print("Generating data...")
+
 #KAON data
 #data_batch_1 = x_test_1[np.random.randint(0, x_test_1.shape[0], size=examples)]
 
@@ -1589,6 +1794,10 @@ print("Data generated")
 
 ######################################################################################################################################################################################
 
+# =============================================================================
+# Unnorm andplot initial data
+# =============================================================================
+
 print("Plotting data...")
 
 #Shift data to correct dist and plot examples of graphs 
@@ -1616,21 +1825,22 @@ else:
     generated_vars_k = data_shift(x_test_1, div_num_1, shift_1, generated_vars_k, particle_source_1)
     generated_vars_p = data_shift(x_test_2, div_num_2, shift_2, generated_vars_p, particle_source_2)
 
-######################################################################################################################################################################################
-#All other plotting functions listed from here e.g. scatter graphs, efficiency plots etc
+# =============================================================================
+# All other plotting functions e.g. scatter graphs, efficiency plots etc
+# =============================================================================
 
 max_var_index = 10000
 #Scatter plot between DLLd and DLLk for KAON and PION data
 
-#DLLk_k against DLLp_k (gen and real)
+#DLLk_k against DLLp_k (gen and real separate)
 col_scatt(generated_vars_k[:,2], generated_vars_k[:,3], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[3], ref_particle, max_var_index, 'gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 col_scatt(x_test_1[:,2], x_test_1[:,3], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[3], ref_particle, max_var_index, 'real', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
-#DLLk_p against DLLp_p (gen and real)
+#DLLk_p against DLLp_p (gen and real separate)
 col_scatt(generated_vars_p[:,2], generated_vars_p[:,3], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[3], ref_particle, max_var_index, 'gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 col_scatt(x_test_2[:,2], x_test_2[:,3], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[3], ref_particle, max_var_index, 'real', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
-#Scatter plot between DLLk for KAON and PION data (generated and original)
+#Scatter plot between DLLk for KAON and PION data (generated and original compared)
 col_scatt(generated_vars_k[:,2], x_test_1[:,2], particle_source_1, DLLs[2], ref_particle, particle_source_1,  DLLs[2], ref_particle, max_var_index, 'real_gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 col_scatt(generated_vars_p[:,2], x_test_2[:,2], particle_source_2, DLLs[2], ref_particle, particle_source_2,  DLLs[2], ref_particle, max_var_index, 'real_gen', x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
 
@@ -1640,6 +1850,63 @@ col_scatt(generated_vars_p[:,2], x_test_2[:,2], particle_source_2, DLLs[2], ref_
 
 
 ######################################################################################################################################################################################
+
+for i in range(phys_dim):
+    if physical_vars[i] == 'TrackP':
+        p_index = DLLs_dim + i
+
+    if physical_vars[i] == 'TrackPt':
+        pt_index = DLLs_dim + i
+        
+    if physical_vars[i] == 'NumLongTracks':
+        num_tracks_index = DLLs_dim + i
+
+    if physical_vars[i] == 'NumPVs':
+        PV_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1EntryDist0':
+        R1_En_0_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1ExitDist0':
+        R1_Ex_0_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2EntryDist0':
+        R2_En_0_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2ExitDist0':
+        R2_Ex_0_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1EntryDist1':
+        R1_En_1_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1ExitDist1':
+        R1_Ex_1_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2EntryDist1':
+        R2_En_1_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2ExitDist1':
+        R2_Ex_1_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1EntryDist2':
+        R1_En_2_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1ExitDist2':
+        R1_Ex_2_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2EntryDist2':
+        R2_En_2_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2ExitDist2':
+        R2_Ex_2_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH1ConeNum':
+        R1_cone_index = DLLs_dim + i
+
+    if physical_vars[i] == 'RICH2ConeNum':
+        R2_cone_index = DLLs_dim + i
+
+
 
 p_bins_no = 100 #Number of momentum bins
 p_max = 100.0 #Maximum track momentum
@@ -1652,8 +1919,8 @@ if generate_P:
     eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, generated_vars_k[:,2], generated_vars_k[:,6], generated_vars_p[:,2], generated_vars_p[:,6], 'k', ref_particle, particle_source_1, particle_source_2, 'gen_P')
 
 #Calculate efficiency using generated DLLs and real momementa... Doesn't work when with models which generate P/Pt.
-eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, generated_vars_k[:,2], x_test_1[:,6], generated_vars_p[:,2], x_test_2[:,6], 'k', ref_particle, particle_source_1, particle_source_2, 'real_P')
-eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, x_test_1[:,2], x_test_1[:,6], x_test_2[:,2], x_test_2[:,6], 'k', ref_particle, particle_source_1, particle_source_2, 'real_DLL-P')
+eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, generated_vars_k[:,2], x_test_1[:, p_index], generated_vars_p[:,2], x_test_2[:, p_index], 'k', ref_particle, particle_source_1, particle_source_2, 'real_P')
+eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, x_test_1[:,2], x_test_1[:, p_index], x_test_2[:,2], x_test_2[:, p_index], 'k', ref_particle, particle_source_1, particle_source_2, 'real_DLL-P')
 
 ######################################################################################################################################################################################
 
@@ -1665,13 +1932,13 @@ DLL_no = 21
 
 #'NumLongTracks'
 phys_var_range = [0,400]
-x_range = [0.2, 1]
+x_range = [0.1, 1]
 
 #Generated DLLk, real no of tracks:
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,8], x_test_2[:,8], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[2], x_range, 'gen_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, num_tracks_index], x_test_2[:, num_tracks_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'NumLongTracks', x_range, 'gen_DLL', True)
 
 #Real DLLk, real no of tracks:
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,8], x_test_2[:,8], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[2], x_range, 'real_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, num_tracks_index], x_test_2[:, num_tracks_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'NumLongTracks', x_range, 'real_DLL', True)
 
 ######################################################################################################################################################################################
 
@@ -1681,10 +1948,10 @@ phys_var_range = [1,5]
 x_range = [0.5, 1]
 
 #Generated DLLk, real no of tracks:
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,9], x_test_2[:,9], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[3], x_range, 'gen_DLL', False)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, PV_index], x_test_2[:, PV_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'NumPVs', x_range, 'gen_DLL', False)
 
 #Real DLLk, real no of tracks:
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,9], x_test_2[:,9], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[3], x_range, 'real_DLL', False)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, PV_index], x_test_2[:, PV_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'NumPVs', x_range, 'real_DLL', False)
 
 ######################################################################################################################################################################################
 
@@ -1693,66 +1960,66 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,9], x_test_2[:,9], misid_b
 misid_bin_no = 4
 phys_var_range = [0,40]
 x_range = [0.2, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,25], x_test_2[:,25], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[19], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_En_0_index], x_test_2[:, R1_En_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist0', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_En_0_index], x_test_2[:, R1_En_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist0', x_range, 'real_DLL', True)
 
 #Increases with distance
 #'RICH1ExitDist0'
 misid_bin_no = 4
 phys_var_range = [0,100]
-x_range = [0.2, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,26], x_test_2[:,26], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[20], x_range, 'real_DLL', True)
+x_range = [0.0, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_Ex_0_index], x_test_2[:, R1_Ex_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist0', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_Ex_0_index], x_test_2[:, R1_Ex_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist0', x_range, 'real_DLL', True)
 
 #'RICH2EntryDist0'
 #Increase as distance increases
 misid_bin_no = 4
 phys_var_range = [0,400]
-x_range = [0.3, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,27], x_test_2[:,27], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[21], x_range, 'real_DLL', True)
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_En_0_index], x_test_2[:, R2_En_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist0', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_En_0_index], x_test_2[:, R2_En_0_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist0', x_range, 'real_DLL', True)
 
 
 #'RICH2ExitDist0'
 #Increase as distance increases
 misid_bin_no = 4
 phys_var_range = [0,800]
-x_range = [0.3, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,28], x_test_2[:,28],misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[22], x_range, 'real_DLL', True)
+x_range = [0.2, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_Ex_0_index], x_test_2[:, R2_Ex_0_index],misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist0', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_Ex_0_index], x_test_2[:, R2_Ex_0_index],misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist0', x_range, 'real_DLL', True)
 
 #'RICH1EntryDist1'
 #Increases with dist
 misid_bin_no = 4
 phys_var_range = [0,40]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,29], x_test_2[:,29], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[23], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_En_1_index], x_test_2[:, R1_En_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist1', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_En_1_index], x_test_2[:, R1_En_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist1', x_range, 'real_DLL', True)
 
 #'RICH1ExitDist1'
 #Increase with distance
 misid_bin_no = 4
 phys_var_range = [0,100]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,30], x_test_2[:,30], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[24], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_Ex_1_index], x_test_2[:, R1_Ex_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist1', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_Ex_1_index], x_test_2[:, R1_Ex_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist1', x_range, 'real_DLL', True)
 
 #'RICH2EntryDist1'
 #Increase as distance increases
 misid_bin_no = 4
 phys_var_range = [0,400]
-x_range = [0.2, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,31], x_test_2[:,31], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[25], x_range, 'real_DLL', True)
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_En_1_index], x_test_2[:, R2_En_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist1', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_En_1_index], x_test_2[:, R2_En_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist1', x_range, 'real_DLL', True)
 
 
 #'RICH2ExitDist1'
 #Increase as distance increases
 misid_bin_no = 4
 phys_var_range = [0,800]
-x_range = [0.2, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,32], x_test_2[:,32], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[26], x_range, 'real_DLL', True)
+x_range = [0.1, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_Ex_1_index], x_test_2[:, R2_Ex_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist1', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_Ex_1_index], x_test_2[:, R2_Ex_1_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist1', x_range, 'real_DLL', True)
 
 
 
@@ -1761,16 +2028,16 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,32], x_test_2[:,32], misid
 misid_bin_no = 4
 phys_var_range = [0,100]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,33], x_test_2[:,33], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[27], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_En_2_index], x_test_2[:, R1_En_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist2', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_En_2_index], x_test_2[:, R1_En_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1EntryDist2', x_range, 'real_DLL', True)
 
 #'RICH1ExitDist2'
 #Increases with distance
 misid_bin_no = 4
 phys_var_range = [0,100]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,34], x_test_2[:,34], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[28], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_Ex_2_index], x_test_2[:, R1_Ex_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist2', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_Ex_2_index], x_test_2[:, R1_Ex_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ExitDist2', x_range, 'real_DLL', True)
 
 
 #'RICH2EntryDist2'
@@ -1778,8 +2045,8 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,34], x_test_2[:,34], misid
 misid_bin_no = 4
 phys_var_range = [0,800]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,35], x_test_2[:,35], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[29],x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_En_2_index], x_test_2[:, R2_En_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist2', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_En_2_index], x_test_2[:, R2_En_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2EntryDist2', x_range, 'real_DLL', True)
 
 
 #'RICH2ExitDist2'
@@ -1787,8 +2054,8 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,35], x_test_2[:,35], misid
 misid_bin_no = 4
 phys_var_range = [0,800]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,36], x_test_2[:,36], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[30], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_Ex_2_index], x_test_2[:, R2_Ex_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist2', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_Ex_2_index], x_test_2[:, R2_Ex_2_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ExitDist2', x_range, 'real_DLL', True)
 
 ######################################################################################################################################################################################
 
@@ -1796,9 +2063,9 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,36], x_test_2[:,36], misid
 #'RICH1ConeNum'
 misid_bin_no = 4
 phys_var_range = [0,24]
-x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,37], x_test_2[:,37], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[31], x_range, 'real_DLL', True)
+x_range = [0.0, 1]
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R1_cone_index], x_test_2[:, R1_cone_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ConeNum', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R1_cone_index], x_test_2[:, R1_cone_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH1ConeNum', x_range, 'real_DLL', True)
 
 
 #Increase in KID as num decreases
@@ -1806,8 +2073,8 @@ id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,37], x_test_2[:,37], misid
 misid_bin_no = 4
 phys_var_range = [0,4]
 x_range = [0.1, 1]
-id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'gen_DLL', True)
-id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:,38], x_test_2[:,38], misid_bin_no, DLL_lim, DLL_no, phys_var_range, physical_vars[32], x_range, 'real_DLL', True)
+id_misid_eff(generated_vars_k[:,2], generated_vars_p[:,2], x_test_1[:, R2_cone_index], x_test_2[:, R2_cone_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ConeNum', x_range, 'gen_DLL', True)
+id_misid_eff(x_test_1[:,2], x_test_2[:,2], x_test_1[:, R2_cone_index], x_test_2[:, R2_cone_index], misid_bin_no, DLL_lim, DLL_no, phys_var_range, 'RICH2ConeNum', x_range, 'real_DLL', True)
 
 # =============================================================================
 # Plot final indvidual histograms for generated DLLs
@@ -1836,10 +2103,10 @@ plot_DLL_hist(generated_vars_p[:,4], DLLs[4], ref_particle, particle_source_2, 6
 plot_DLL_hist(generated_vars_p[:,5], DLLs[5], ref_particle, particle_source_2, 600, [-60, 40], 0.12)
 
 #Plot histograms of momenta from generated/real PION data
-#plot_gen_hist(generated_vars_p[:,6], physical_vars[0], particle_source_2, 750, [0,70000], 12000)
-#plot_gen_hist(generated_vars_p[:,7], physical_vars[1], particle_source_2, 750, [0,3500], 6000)
-#plot_gen_hist(x_test_2[:,6], physical_vars[0], particle_source_2, 750, [0,70000], 7000)
-#plot_gen_hist(x_test_2[:,7], physical_vars[1], particle_source_2, 750, [0,3500], 5000)
+#plot_gen_hist(generated_vars_p[:,6], physical_vars[p_index], particle_source_2, 750, [0,70000], 12000)
+#plot_gen_hist(generated_vars_p[:,7], physical_vars[pt_index], particle_source_2, 750, [0,3500], 6000)
+#plot_gen_hist(x_test_2[:,6], physical_vars[p_index], particle_source_2, 750, [0,70000], 7000)
+#plot_gen_hist(x_test_2[:,7], physical_vars[pt_index], particle_source_2, 750, [0,3500], 5000)
 
 ######################################################################################################################################################################################
 
@@ -1863,7 +2130,10 @@ plot_DLL_hist(generated_vars_p[:,5], DLLs[5], ref_particle, particle_source_2, 6
 # Histograms comparing real/generated data, and ratios
 # =============================================================================
 
-#e:
+# =============================================================================
+# e:
+# =============================================================================
+
 #plot_four_DLL_hist(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, [-80, 20], 0.16)
 #plot_hist_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_1, 100, [-80, 20], 2)
 hist_overlap_1 = histogram_intersection(generated_vars_k[:,0], x_test_1[:,0], 750, [-80, 20])
@@ -1875,7 +2145,10 @@ print("Pion:", hist_overlap_2)
 
 ########################################################
 
-#mu:
+# =============================================================================
+# mu:
+# =============================================================================
+
 #plot_four_DLL_hist(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, [-50, 20], 0.3)
 #plot_hist_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_1, 100, [-50, 20], 2)
 hist_overlap_3 = histogram_intersection(generated_vars_k[:,1], x_test_1[:,1], 750, [-50, 20])
@@ -1885,9 +2158,11 @@ print("Overlaps for DLL(" + DLLs[1] + "-" + ref_particle + "):")
 print("Kaon:", hist_overlap_3)
 print("Pion:", hist_overlap_4)
 
-########################################################
 
-#k:
+# =============================================================================
+# k:
+# =============================================================================
+
 #plot_four_DLL_hist(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_2, 'upper left', 750, [-60, 80], 0.1)
 #plot_hist_ratios(generated_vars_k[:,2], x_test_1[:,2], generated_vars_p[:,2], x_test_2[:,2], DLLs[2], ref_particle, particle_source_1, 100, [-60, 80], 2)
 hist_overlap_5 = histogram_intersection(generated_vars_k[:,2], x_test_1[:,2], 750, [-60, 80])
@@ -1899,7 +2174,10 @@ print("Pion:", hist_overlap_6)
 
 ########################################################
 
-#p:
+# =============================================================================
+# p:
+# =============================================================================
+
 #plot_four_DLL_hist(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
 #plot_hist_ratios(generated_vars_k[:,3], x_test_1[:,3], generated_vars_p[:,3], x_test_2[:,3], DLLs[3], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_7 = histogram_intersection(generated_vars_k[:,3], x_test_1[:,3], 750, [-60, 60])
@@ -1911,7 +2189,10 @@ print("Pion:", hist_overlap_8)
 
 ########################################################
 
-#d:
+# =============================================================================
+# d:
+# =============================================================================
+
 #plot_four_DLL_hist(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
 #plot_hist_ratios(generated_vars_k[:,4], x_test_1[:,4], generated_vars_p[:,4], x_test_2[:,4], DLLs[4], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_9 = histogram_intersection(generated_vars_k[:,4], x_test_1[:,4], 750, [-60, 60])
@@ -1921,9 +2202,10 @@ print("Overlaps for DLL(" + DLLs[4] + "-" + ref_particle + "):")
 print("Kaon:", hist_overlap_9)
 print("Pion:", hist_overlap_10)
 
-########################################################
+# =============================================================================
+# bt:
+# =============================================================================
 
-#bt:
 #plot_four_DLL_hist(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_2, 'upper left', 750, [-60, 60], 0.1)
 #plot_hist_ratios(generated_vars_k[:,5], x_test_1[:,5], generated_vars_p[:,5], x_test_2[:,5], DLLs[5], ref_particle, particle_source_1, 100, [-60, 60], 2)
 hist_overlap_11 = histogram_intersection(generated_vars_k[:,5], x_test_1[:,5], 750, [-60, 60])
@@ -1935,7 +2217,9 @@ print("Pion:", hist_overlap_12)
 
 ########################################################
 
-#Combined ratio and histograms:
+# =============================================================================
+# Combined ratio and histograms:
+# =============================================================================
 
 plot_hist_and_ratios(generated_vars_k[:,0], x_test_1[:,0], generated_vars_p[:,0], x_test_2[:,0], DLLs[0], ref_particle, particle_source_2, 'upper left', 750, 100, [-80, 20], 0.16, 2)
 plot_hist_and_ratios(generated_vars_k[:,1], x_test_1[:,1], generated_vars_p[:,1], x_test_2[:,1], DLLs[1], ref_particle, particle_source_2, 'upper left', 750, 100, [-50, 20], 0.3, 2)
@@ -1954,6 +2238,36 @@ with open('overlaps_' + set_text + '.txt', 'w') as f:
     print(hist_overlaps, file=f)
 
 
+# =============================================================================
+# Correlation coefficients
+# =============================================================================
+
+print(np.corrcoef(x_test_1[:,2], x_test_1[:,3])[1,0])
+#print(np.corrcoef(x_test_1[1000000:,2], x_test_1[1000000:,3])[1,0])
+#print(np.corrcoef(x_test_1[:1000000,2], x_test_1[:1000000,3])[1,0])
+
+print(np.corrcoef(generated_vars_k[:,2], generated_vars_k[:,3])[1,0])
+#print(np.corrcoef(generated_vars_k_1[:,2], generated_vars_k_1[:,3])[1,0])
+#print(np.corrcoef(generated_vars_k_2[:,2], generated_vars_k_2[:,3])[1,0])
+
+print(np.corrcoef(x_test_2[:,2], x_test_2[:,3])[1,0])
+#print(np.corrcoef(x_test_2[1000000:,2], x_test_2[1000000:,3])[1,0])
+#print(np.corrcoef(x_test_2[:1000000,2], x_test_2[:1000000,3])[1,0])
+
+print(np.corrcoef(generated_vars_p[:,2], generated_vars_p[:,3])[1,0])
+#print(np.corrcoef(generated_vars_p_1[:,2], generated_vars_p_1[:,3])[1,0])
+#print(np.corrcoef(generated_vars_p_2[:,2], generated_vars_p_2[:,3])[1,0])
+
+
+print(np.corrcoef(generated_vars_k[:,2], x_test_1[:,2])[1,0])
+#print(np.corrcoef(generated_vars_k_1[:,2], x_test_1[:1000000,2])[1,0])
+#print(np.corrcoef(generated_vars_k_2[:,2], x_test_1[1000000:,2])[1,0])
+
+print(np.corrcoef(generated_vars_p[:,2], x_test_2[:,2])[1,0])
+#print(np.corrcoef(generated_vars_p_1[:,2], x_test_2[:1000000,2])[1,0])
+#print(np.corrcoef(generated_vars_p_2[:,2], x_test_2[1000000:,2])[1,0])
+
+
 #Measure total run time for script and save
 t_final = time.time()
 runtime = t_final - t_init
@@ -1961,3 +2275,4 @@ print("Total run time = ", runtime)
 
 with open('runtime_' + set_text + '.txt', 'w') as f:
     print(runtime, file=f)
+    
