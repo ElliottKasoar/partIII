@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun May  5 19:38:10 2019
 
-@author: Elliott
-"""
+#Script to makes plots of loss functions
+#Currently plots tanh, sigmoid and LeakyReLU
+
 import numpy as np
 import matplotlib.pyplot as plt
 
