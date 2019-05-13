@@ -4,6 +4,15 @@
 #Script to calculate normalisation variables: shift and div_num
 #Select particle source (kaon or pion) and values needed to normalise each variable individually is saved to a csv
 
+#Assumes data files for kaon and pion tracks (mod refers to additonal variables added):
+# '../../data/mod-PID-train-data-KAONS.hdf'
+# '../../data/mod-PID-train-data-PIONS.hdf'
+
+#Saves one of two csv files:
+
+# '../../data/KAON_norm.csv' or '../../data/PION_norm.csv'
+
+
 import numpy as np
 import pandas as pd
 
