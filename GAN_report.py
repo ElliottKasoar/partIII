@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# =============================================================================
-# Notes
-# =============================================================================
-
 #GAN training script.
 #GAN generates DLLs with input physics taken from same datafiles as target DLLs
 #Saves generator network periodically for further testing among other outputs
