@@ -354,7 +354,7 @@ def norm(x, particle_source):
     return x, shift, div_num
 
 
-#Create sequences of data
+#Create sequences of data needed for RNN
 #Inputs: data array to be made into sequences, length of sequences (=look_back)
 #Returns: arrays of sequenced data, array containing the final row of each seq
 #Note: Number of sequences = original number of rows - look_back + 1 
