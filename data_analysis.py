@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Nov 26 00:39:06 2018
 
-@author: Elliott
-"""
+#Script to perform analysis of KAON/PION data
+#Plots DLL distributions, correlations, ID/mis-ID efficiencies etc.
 
-#To do: 
-#Pass in data properly into functions
-#Comment code more
-#Normalise data distributions differently?
-
-#RichDLLe', 'RichDLLmu','RichDLLk', 'RichDLLp', 'RichDLLd', 'RichDLLbt'
+#Assumes data files for kaon and pion tracks (mod refers to additonal variables added):
+# '../../data/mod-PID-train-data-KAONS.hdf'
+# '../../data/mod-PID-train-data-PIONS.hdf'
 
 import pandas as pd
 import numpy as np
@@ -69,9 +64,12 @@ if subset:
 print("Data imported")
 
 ###############################################################################
+
 #Basic data manipulation e.g. selecting columns of data and changing DLLs
 
 #Get column from kaon or pion data
+#Input: Variable to extract, particle source (KAON or PION)
+#Returns: pandas column with variable of interest
 def get_data(var_type, particle_source):
     
     if(particle_source == 'KAON'):
@@ -100,9 +98,9 @@ def change_DLL(DLL1, DLL2):
     return DLL3
 
 
-###############################################################################
-#General plotting functions
-###############################################################################
+# =============================================================================
+# General plotting functions
+# =============================================================================
 
 #Make plots of one variable only to see general distribution, up to max_index
 def one_var_plots(max_index, var1, var1_text):
@@ -167,8 +165,8 @@ def col_scatt(var1, var2, var1_text, var2_text, max_var_index, x_range=None, y_r
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.scatter(x, y, c=z, s=size, edgecolor='')
-    ax1.set_xlabel(var1_text)
-    ax1.set_ylabel(var2_text)
+    ax1.set_xlabel(var1_text, fontsize=13)
+    ax1.set_ylabel(var2_text, fontsize=13)
     ax1.set_xlim(x_range)
     ax1.set_ylim(y_range)
     
@@ -206,7 +204,6 @@ def hist_2D(max_var_index, var1, var2, var1_text, var2_text, save_index=0):
 def plot_vars():
     
     #Get data:
-    
     DLLe_k = get_data('RichDLLe', 'KAON')
     DLLmu_k = get_data('RichDLLmu', 'KAON')
     DLLk_k = get_data('RichDLLk', 'KAON')
@@ -217,14 +214,19 @@ def plot_vars():
     TrackPt_k = get_data('TrackPt', 'KAON')
     TrackChi2PerDof_k = get_data('TrackChi2PerDof', 'KAON')
 
-    DLLk_p = get_data('RichDLLp', 'PION')
     DLLd_p = get_data('RichDLLd', 'PION')
+    DLLk_p = get_data('RichDLLk', 'PION')
+    DLLp_p = get_data('RichDLLp', 'PION')
 
     #Make plots of correltions between two DLLs
     max_var_index = 10000
     
     ord_scatt(DLLk_k, DLLp_k, "DLLk_k", "DLLp_k", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+    
+    #Using these currently.
     col_scatt(DLLk_k, DLLp_k, "DLLk_k", "DLLp_k", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+    col_scatt(DLLk_p, DLLp_p, "DLLk_p", "DLLp_p", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
+    
     hist_2D(max_var_index, DLLk_k, DLLp_k, "DLLk_k", "DLLp_k", save_index=10000)
 
     col_scatt(DLLk_k, DLLd_k, "DLLk_k", "DLLd_k", max_var_index, x_range=[-100,100], y_range=[-80,80], zero_lines=1, save_index=10000, size=0.5)
@@ -277,7 +279,7 @@ def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_
         DLL_part_1 = 'K'
       
     if(DLL_part_2 == 'pi'):
-        DLL_part_2 = r'$\pi\ $'
+        DLL_part_2 = r'$\pi) $'
     elif(DLL_part_2 == 'k'):
         DLL_part_2 = 'K'
     
@@ -288,15 +290,15 @@ def eff_mom_plot(p_points, source1_eff_0, source1_eff_5, source2_eff_0, source2_
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.set_ylim(0,1.4)
-    ax1.set_xlabel('Momentum (GeV/c)')
-    ax1.set_ylabel('Efficiency')
+    ax1.set_xlabel('Momentum (GeV/c)', fontsize=13)
+    ax1.set_ylabel('Efficiency', fontsize=13)
     ax1.yaxis.set_minor_locator(AutoMinorLocator(4))
     
     s1_0 = ax1.scatter(p_points, source1_eff_0, s = 5, marker = 'o', facecolors = 'none', edgecolors = 'r')
     s1_5 = ax1.scatter(p_points, source1_eff_5, s = 5, marker = 'o', color = 'r')
     s2_0 = ax1.scatter(p_points, source2_eff_0, s = 5, marker = 's', facecolors = 'none', edgecolors = 'k')
     s2_5 = ax1.scatter(p_points, source2_eff_5, s = 5, marker = 's', color = 'k')    
-    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0)', process_1_text + ', ' + DLL_text + ' > 5)', process_2_text + ', ' + DLL_text + ' > 0)', process_2_text + ', ' + DLL_text + ' > 5)'), loc='upper right', ncol=2, fontsize=8)
+    ax1.legend((s1_0, s1_5, s2_0, s2_5), (process_1_text + ', ' + DLL_text + ' > 0', process_1_text + ', ' + DLL_text + ' > 5', process_2_text + ', ' + DLL_text + ' > 0', process_2_text + ', ' + DLL_text + ' > 5'), loc='upper right', ncol=2, fontsize=11)
     fig1.savefig(title, format='eps', dpi=1000)
 
 
@@ -458,8 +460,39 @@ def id_misid_eff(DLL_particle, ref_particle, particle_source_1, particle_source_
         plot_title = "No. Tracks in Event"
     elif var_name == 'NumPVs':
         plot_title = "No. Reco PVs in Event"
+
     elif var_name == 'RICH1EntryDist0':
-        plot_title = "Distance to nearest track at RICH1 Entry"
+        plot_title = "Nearest track at RICH 1 entry / mm"
+    elif var_name == 'RICH1ExitDist0':
+        plot_title = "Nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist0':
+        plot_title = "Nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist0':
+        plot_title = "Nearest track at RICH 2 exit / mm"
+
+    elif var_name == 'RICH1EntryDist1':
+        plot_title = "2nd nearest track at RICH 1 entry / mm"
+    elif var_name == 'RICH1ExitDist1':
+        plot_title = "2nd nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist1':
+        plot_title = "2nd nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist1':
+        plot_title = "2nd nearest track at RICH 2 exit / mm"
+
+    elif var_name == 'RICH1EntryDist2':
+        plot_title = "3rd nearest track at RICH 1 entry /mm"
+    elif var_name == 'RICH1ExitDist2':
+        plot_title = "3rd nearest track at RICH 1 exit / mm"
+    elif var_name == 'RICH2EntryDist2':
+        plot_title = "3rd nearest track at RICH 2 entry / mm"
+    elif var_name == 'RICH2ExitDist2':
+        plot_title = "3rd nearest track at RICH 2 exit / mm"
+        
+    elif var_name == 'RICH1ConeNum':
+        plot_title = "Tracks in RICH 1 Cone"
+    elif var_name == 'RICH2ConeNum':
+        plot_title = "Tracks in RICH 2 Cone"
+        
     else:
         plot_title = var_name
             
@@ -490,8 +523,8 @@ def id_misid_eff(DLL_particle, ref_particle, particle_source_1, particle_source_
     fig1, ax1 = plt.subplots()
     ax1.cla()
     ax1.set_xlim(x_range[0], x_range[1])
-    ax1.set_xlabel('Kaon ID Efficiency')
-    ax1.set_ylabel('Pion Mis-ID Efficiency')
+    ax1.set_xlabel('Kaon ID Efficiency', fontsize=13)
+    ax1.set_ylabel('Pion Mis-ID Efficiency', fontsize=13)
 #    ax1.xaxis.set_minor_locator(AutoMinorLocator(4))
     
     if bins_no == 4:
@@ -504,7 +537,7 @@ def id_misid_eff(DLL_particle, ref_particle, particle_source_1, particle_source_
             ax1.semilogy(source_1_eff_av[i,:], source_2_eff_av[i,:], markersize=4, label=labels[i])
         
     fig_title =  "kID_pMID_eff_" + var_name + subset_text + ".eps"   
-    ax1.legend(title=plot_title, loc='upper left', fontsize=8)
+    ax1.legend(title=plot_title, loc='upper left', fontsize=11)
     fig1.savefig(fig_title, format='eps', dpi=1000)
 
 
@@ -644,10 +677,12 @@ exp_bins = 0 #Exponentially increasing bin sizes (if neither uni or exp, linear 
 exponent = 2 #Exponent for logspace. Doesn't change anything currently as overspecified?
 
 #Calculate and plot efficiency for K-> K and pi -> K
-eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, 'k', 'pi', 'KAON', 'PION')
+#eff_mom_calc(p_bins_no, p_max, uni_bins, exp_bins, exponent, 'k', 'pi', 'KAON', 'PION')
 
 #Plot other varibles e.g. individual DLLs or correlations
-plot_vars()
+#plot_vars()
+
+#######################################################################################################################################################################
 
 misid_bin_no = 4
 DLL_lim = 15
@@ -656,152 +691,156 @@ DLL_no = 21
 #'NumLongTracks'
 phys_var_range = [0,400]
 x_range = [0.2, 1]
-id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumLongTracks', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+#id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumLongTracks', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 
 
 #'NumPVs'
 phys_var_range = [1,5]
 x_range = [0.5, 1]
-id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumPVs', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, False)
+#id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumPVs', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, False)
 
 #######################################################################################################################################################################
 
-##Increase in KID as dist increases
-##'RICH1EntryDist0'
-#misid_bin_no = 4
-#phys_var_range = [0,40]
-#x_range = [0.2, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+#'RICH1EntryDist0'
+
+#Increase in KID as dist increases
+misid_bin_no = 4
+phys_var_range = [0,40]
+x_range = [0.2, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Shows increase initially, then all merge together
-##'RICH1EntryDist0'
 #misid_bin_no = 4
 #phys_var_range = [0,100]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
 ##Unclear - increase initially then decrease  
-##'RICH1EntryDist0'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increases with dist
-##'RICH1EntryDist1'
-#misid_bin_no = 4
-#phys_var_range = [0,40]
-#x_range = [0.2, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#######################################################################################################################################################################
+
+#'RICH1EntryDist1'
+
+#Increases with dist
+misid_bin_no = 4
+phys_var_range = [0,40]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increases then merges together
-##'RICH1EntryDist1'
 #misid_bin_no = 4
 #phys_var_range = [0,100]
 #x_range = [0.2, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 #
 ##Increase initially then decreases again
-##'RICH1EntryDist1'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.2, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increases with dist
-##'RICH1EntryDist2'
-#misid_bin_no = 4
-#phys_var_range = [0,40]
-#x_range = [0.2, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#######################################################################################################################################################################
+
+#'RICH1EntryDist2'
+
+#Increases with dist
+misid_bin_no = 4
+phys_var_range = [0,40]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Incrases, last two together
-##'RICH1EntryDist2'
 #misid_bin_no = 4
 #phys_var_range = [0,100]
 #x_range = [0.2, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 #
 ##Increase first then decrease
-##'RICH1EntryDist2'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.2, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#######################################################################################################################################################################
+
+#'RICH1ExitDist0'
+
 ##Hard to tell - KID mostly increases with distance?
-##'RICH1ExitDist0'
 #misid_bin_no = 4
 #phys_var_range = [0,40]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 #
 ##Increases with distance
-##'RICH1ExitDist0'
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.2, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase initially then somewhat decreases
-##'RICH1ExitDist0'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#######################################################################################################################################################################
+
+#'RICH1ExitDis1'
+
 ##Unclear, all together
-##'RICH1ExitDis1'
 #misid_bin_no = 4
 #phys_var_range = [0,40]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase with distance
-##'RICH1ExitDist1'
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increase with distance
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase initially then somwwhat decreases back
-##'RICH1ExitDist1'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#######################################################################################################################################################################
+
+#'RICH1ExitDist2'
+
 ##Unclear
-##'RICH1ExitDist2'
 #misid_bin_no = 4
 #phys_var_range = [0,40]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increases with distance
-##'RICH1ExitDist2'
-#misid_bin_no = 4
-#phys_var_range = [0,100]
-#x_range = [0.3, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increases with distance
+misid_bin_no = 4
+phys_var_range = [0,100]
+x_range = [0, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase initially then decrease somewhat
-##'RICH1ExitDist2'
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.3, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 
-#######################################################################################################################################################################
-#
-##'RICH2EntryDist0'
-#
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,400]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+######################################################################################################################################################################
+
+#'RICH2EntryDist0'
+
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,400]
+x_range = [0.2, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase as distance increases, last two together
 #misid_bin_no = 4
 #phys_var_range = [0,800]
@@ -813,134 +852,134 @@ id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumPVs', misid_bin_no, DLL_lim, DLL_no,
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-########################################################################################################################################################################
-#
-##'RICH2EntryDist1'
-#
+
+#######################################################################################################################################################################
+
+#'RICH2EntryDist1'
+
 ##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,400]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,400]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
+#Increase as distance increases
 #misid_bin_no = 4
 #phys_var_range = [0,800]
-#x_range = [0.1, 1]
+#x_range = [0.2, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
 ##Increase as distance increases initially, then decrease
 #misid_bin_no = 4
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-########################################################################################################################################################################
-#
-##'RICH2EntryDist2'
-#
+
+#######################################################################################################################################################################
+
+#'RICH2EntryDist2'
+
 ##Increase as distance increases
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase as distance increases, overlapping at end
 #misid_bin_no = 4
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2EntryDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-########################################################################################################################################################################
-#
-##'RICH2ExitDist0'
-#
+
+#######################################################################################################################################################################
+
+#'RICH2ExitDist0'
+
 ##Increase as distance increases
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.2, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##'RICH2ExitDist0'
 ##Increase as distance increases initially, then on top
 #misid_bin_no = 4
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist0', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-########################################################################################################################################################################
-#
-##'RICH2ExitDist1'
-#
+
+#######################################################################################################################################################################
+
+#'RICH2ExitDist1'
+
 ##Increase as distance increases, a bit unclear
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase as distance increases, last two on top of each other ish
 #misid_bin_no = 4
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist1', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-########################################################################################################################################################################
-#
-##'RICH2ExitDist2'
-#
+
+#######################################################################################################################################################################
+
+#'RICH2ExitDist2'
+
 ##Increase as distance increases probably?
 #misid_bin_no = 4
 #phys_var_range = [0,400]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase as distance increases
-#misid_bin_no = 4
-#phys_var_range = [0,800]
-#x_range = [0.1, 1]
-#id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
+
+#Increase as distance increases
+misid_bin_no = 4
+phys_var_range = [0,800]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
 ##Increase as distance increases, last two on top of each other
 #misid_bin_no = 4
 #phys_var_range = [0,1600]
 #x_range = [0.1, 1]
 #id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ExitDist2', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-#
-########################################################################################################################################################################
-#
-##Increase in KID as num decreases
-##'RICH1ConeNum'
-#misid_bin_no = 4
-#phys_var_range = [0,24]
-#x_range = [0.1, 1]
-##id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ConeNum', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
-#
-##Increase in KID as num decreases
-##'RICH2ConeNum'
-#misid_bin_no = 4
-#phys_var_range = [0,4]
-#x_range = [0.1, 1]
-##id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ConeNum', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
+
+#######################################################################################################################################################################
+
+#Increase in KID as num decreases
+#'RICH1ConeNum'
+misid_bin_no = 4
+phys_var_range = [0,24]
+x_range = [0, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH1ConeNum', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
+
+#Increase in KID as num decreases
+#'RICH2ConeNum'
+misid_bin_no = 4
+phys_var_range = [0,4]
+x_range = [0.1, 1]
+id_misid_eff('k', 'pi', 'KAON', 'PION', 'RICH2ConeNum', misid_bin_no, DLL_lim, DLL_no, phys_var_range, x_range, True)
 
 #######################################################################################################################################################################
 
@@ -969,16 +1008,16 @@ id_misid_eff('k', 'pi', 'KAON', 'PION', 'NumPVs', misid_bin_no, DLL_lim, DLL_no,
 #Mostly these in use
 
 #New data: Mostly smooth but narrow spikes at DLL=0
-plot_DLL_hist('e', 'pi', 'KAON', 500, [-40, 20], 0.2)
-plot_DLL_hist('mu', 'pi', 'KAON', 500, [-20, 15], 0.4)
-plot_DLL_hist('k', 'pi', 'KAON', 750, [-40, 80], 0.06)
-plot_DLL_hist('p', 'pi', 'KAON', 600, [-40, 60], 0.06)
-plot_DLL_hist('d', 'pi', 'KAON', 600, [-40, 60], 0.06)
-plot_DLL_hist('bt', 'pi', 'KAON', 600, [-40, 60], 0.06)
+plot_DLL_hist('e', 'pi', 'KAON', 500, [-40, 20], 0.14)
+plot_DLL_hist('mu', 'pi', 'KAON', 500, [-20, 15], 0.3)
+plot_DLL_hist('k', 'pi', 'KAON', 750, [-40, 80], 0.05)
+plot_DLL_hist('p', 'pi', 'KAON', 600, [-40, 60], 0.05)
+plot_DLL_hist('d', 'pi', 'KAON', 600, [-40, 60], 0.05)
+plot_DLL_hist('bt', 'pi', 'KAON', 600, [-40, 60], 0.05)
 
-plot_DLL_hist('e', 'pi', 'PION', 500, [-80, 20], 0.12)
-plot_DLL_hist('mu', 'pi', 'PION', 500, [-50, 20], 0.25)
-plot_DLL_hist('k', 'pi', 'PION', 750, [-60, 20], 0.08)
+plot_DLL_hist('e', 'pi', 'PION', 500, [-80, 20], 0.06)
+plot_DLL_hist('mu', 'pi', 'PION', 500, [-50, 20], 0.14)
+plot_DLL_hist('k', 'pi', 'PION', 750, [-60, 20], 0.1)
 plot_DLL_hist('p', 'pi', 'PION', 600, [-60, 40], 0.1)
 plot_DLL_hist('d', 'pi', 'PION', 600, [-60, 40], 0.1)
 plot_DLL_hist('bt', 'pi', 'PION', 600, [-60, 40], 0.1)
