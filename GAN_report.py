@@ -5,10 +5,34 @@
 # Notes
 # =============================================================================
 
-#Building on GAN_corr_RNN.py. Rewritten to allow implementation of WGAN and 
-#gradient penalty
+#GAN training script.
+#GAN generates DLLs with input physics taken from same datafiles as target DLLs
+#Saves generator network periodically for further testing among other outputs
+
+#Builds on GAN_corr_RNN.py. Rewritten to allow implementation of WGAN and 
+#gradient penalty again
+
 #Note: cannot calculate gradient of recurrent layers currently so cannot 
-#implement both simultaneously 
+#implement both simultaneously
+
+#Also note: WGAN/GP/RNN currently show no improvement over default params
+
+# =============================================================================
+# Useful code
+# =============================================================================
+
+#Basic GAN:
+#github.com/eriklindernoren/Keras-GAN/blob/master/gan/gan.py
+
+#Physics conditioning:
+#github.com/eriklindernoren/Keras-GAN/blob/master/cgan/cgan.py
+
+#WGAN-GP code:
+#github.com/keras-team/keras-contrib/blob/master/examples/improved_wgan.py
+
+#Elements of GAN-RNN implementation taken from:
+#github.com/corynguyen19/midi-lstm-gan/blob/master/mlp_gan.py
+#github.com/sachinruk/PyData_Keras_Talk/blob/master/cosine_LSTM.ipynb
 
 # =============================================================================
 # Expected file structure to run this file:
