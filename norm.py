@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
 #Script to calculate normalisation variables: shift and div_num
 #Select particle source (kaon or pion) and values needed to normalise each variable individually is saved to a csv
 
