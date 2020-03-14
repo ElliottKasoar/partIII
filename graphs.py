@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#Script to makes plots of loss functions
+#Script to makes plots of activation functions
 #Currently plots tanh, sigmoid and LeakyReLU
 
 import numpy as np
