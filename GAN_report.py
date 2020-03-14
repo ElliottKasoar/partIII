@@ -117,7 +117,7 @@ grad_penalty_weight = 10  #Default 10 as per the paper
 
 grad_loss = False #Use gradient penalty loss
 WGAN = False #Use Wasserstein loss function
-RNN = True #Use recurrent layers
+RNN = False #Use recurrent layers
 
 #DLL(DLL[i] - ref_particle) from particle_source data 
 #e.g. DLL(K-pi) from kaon data file
@@ -147,8 +147,8 @@ data_dim = DLLs_dim + phys_dim
 gen_input_row_dim  = noise_dim + phys_dim 
 
 #Internal layers of generator and discriminator
-gen_layers = 6 #Default = 8
-discrim_layers = 6 #Default = 8
+gen_layers = 9 #Default = 9
+discrim_layers = 9 #Default = 9
 
 #Number of nodes in input layers and hidden layers ('x_nodes')
 gen_input_nodes = 256 #Default = 256
@@ -160,10 +160,10 @@ discrim_nodes = 256 #Default = 256
 #the input was real or generated
 discrim_output_dim = 1 #Default = 1
 
-#If including recurrent layers and choose how to sort data. If sort by 'None' 
+#If including recurrent layers can choose how to sort data. If sort by 'None' 
 #will still be sorted by Event/Run number
 
-#Still group by events, but also sort by busy-ness
+#Still group by events, but also sort by busy-ness (RNN only)
 sort_var = ['RunNumber', 'EventNumber', 'RICH1EntryDist0'] 
 
 #If running recurrent layers, must change input dimensions accordingly, 
@@ -410,7 +410,7 @@ def get_x_data(DLLs, physical_vars, particle_source):
 
     #Create and array with fraction of 1s and 0s randomly mixed and apply as 
     #boolean mask to use fraction of data only
-    zero_arr =np.zeros(data_length - tot_split, dtype=bool)
+    zero_arr = np.zeros(data_length - tot_split, dtype=bool)
     ones_arr = np.ones(tot_split, dtype=bool)
     frac_mask = np.concatenate((zero_arr,ones_arr))
     np.random.shuffle(frac_mask)
